@@ -1,0 +1,99 @@
+{
+  "functions": {
+    "source": "functions",
+    "codebase": "default",
+    "ignore": [
+      "node_modules",
+      ".git",
+      "firebase-debug.log",
+      "firebase-debug.*.log",
+      "*.local",
+      ".secret.local"
+    ],
+    "predeploy": [
+      "npm --prefix \"$RESOURCE_DIR\" run build"
+    ]
+  },
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "hosting": {
+    "public": "out",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/api/requests/create",
+        "function": {
+          "functionId": "createRequest",
+          "region": "asia-southeast1",
+          "pinTag": true
+        }
+      },
+      {
+        "source": "/api/requests/finalize",
+        "function": {
+          "functionId": "finalizeRequest",
+          "region": "asia-southeast1",
+          "pinTag": true
+        }
+      },
+      {
+        "source": "/api/requests/track",
+        "function": {
+          "functionId": "trackRequest",
+          "region": "asia-southeast1",
+          "pinTag": true
+        }
+      },
+      {
+        "source": "/api/public/stats",
+        "function": {
+          "functionId": "publicStats",
+          "region": "asia-southeast1",
+          "pinTag": true
+        }
+      },
+      {
+        "source": "/api/admin/requests/update",
+        "function": {
+          "functionId": "updateRequest",
+          "region": "asia-southeast1",
+          "pinTag": true
+        }
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "emulators": {
+    "auth": {
+      "port": 9099
+    },
+    "functions": {
+      "port": 5001
+    },
+    "firestore": {
+      "port": 8080
+    },
+    "storage": {
+      "port": 9199
+    },
+    "hosting": {
+      "port": 5000
+    },
+    "ui": {
+      "enabled": true,
+      "port": 4000
+    },
+    "singleProjectMode": true
+  }
+}

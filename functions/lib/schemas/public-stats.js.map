@@ -1,0 +1,1 @@
+{"version":3,"file":"public-stats.js","sourceRoot":"","sources":["../../src/schemas/public-stats.ts"],"names":[],"mappings":";;;AAAA,6BAAwB;AAEX,QAAA,iBAAiB,GAAG,OAAC;KAC/B,MAAM,CAAC;IACN,WAAW,EAAE,OAAC;SACX,OAAO,EAAE;SACT,QAAQ,EAAE;SACV,OAAO,CAAC,KAAK,CAAC;CAClB,CAAC;KACD,MAAM,EAAE,CAAC"}

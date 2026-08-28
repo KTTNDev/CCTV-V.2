@@ -1,0 +1,77 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.get("email", "") in [
+          "rawai.cctv@gmail.com",
+          "kittinanpolrob@gmail.com",
+          "phuketpao.evaluation@gmail.com"
+        ];
+    }
+
+    function requestDocument(requestId) {
+      return firestore.get(
+        /databases/(default)/documents/cctv_requests/$(requestId)
+      );
+    }
+
+    function canUploadRequestFile(
+      requestId,
+      kind,
+      fileName
+    ) {
+      let requestDoc = requestDocument(requestId);
+
+      return isSignedIn()
+        && requestDoc.data.ownerUid == request.auth.uid
+        && requestDoc.data.status == "draft"
+        && requestDoc.data.draftExpiresAt > request.time
+        && requestDoc.data.uploadAuthorizations is map
+        && fileName in requestDoc.data.uploadAuthorizations
+        && requestDoc.data.uploadAuthorizations[fileName].status
+          == "pending"
+        && requestDoc.data.uploadAuthorizations[fileName].kind
+          == kind
+        && requestDoc.data.uploadAuthorizations[fileName].storagePath
+          == "requests/"
+            + requestId
+            + "/uploads/"
+            + kind
+            + "/"
+            + fileName
+        && request.resource.size
+          == requestDoc.data.uploadAuthorizations[fileName].size
+        && request.resource.size
+          <= 10 * 1024 * 1024
+        && request.resource.contentType
+          == requestDoc.data.uploadAuthorizations[fileName].contentType;
+    }
+
+    match /requests/{requestId}/uploads/{kind}/{fileName} {
+      // ประชาชนอัปโหลดได้เฉพาะไฟล์ที่ระบบอนุญาต
+      allow create: if canUploadRequestFile(
+        requestId,
+        kind,
+        fileName
+      );
+
+      // ไฟล์คำร้องอ่านได้เฉพาะ Admin
+      allow read: if isAdmin();
+
+      allow update, delete: if false;
+    }
+
+    // รองรับไฟล์เก่าที่อาจอยู่คนละตำแหน่งใน Storage
+    match /{allPaths=**} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+  }
+}

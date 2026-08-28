@@ -1,0 +1,56 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.get(
+          "email",
+          ""
+        ) in [
+          "rawai.cctv@gmail.com",
+          "kittinanpolrob@gmail.com",
+          "phuketpao.evaluation@gmail.com"
+        ];
+    }
+
+    match /cctv_requests/{requestId} {
+      // Admin อ่านข้อมูลคำร้องได้
+      // ประชาชนอ่านผ่าน Tracking Function เท่านั้น
+      allow read: if isAdmin();
+
+      // ทุกการเขียนต้องผ่าน Cloud Functions
+      allow create, update, delete: if false;
+    }
+
+    match /tracking_index/{trackingId} {
+      // เก็บ mapping และข้อมูลลับสำหรับ Tracking
+      // ใช้งานผ่าน Cloud Functions เท่านั้น
+      allow read, write: if false;
+    }
+
+    match /_system_rate_limits/{documentId} {
+      // Rate Limit เป็นข้อมูลภายในระบบ
+      allow read, write: if false;
+    }
+
+    match /site_analytics/{documentId} {
+      // Admin อ่านรายงานได้
+      // การนับผู้เข้าชมทำผ่าน Public Stats Function
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /audit_logs/{auditId} {
+      // Admin อ่าน Audit Log ได้
+      // การสร้าง Audit Log ทำผ่าน Cloud Functions เท่านั้น
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

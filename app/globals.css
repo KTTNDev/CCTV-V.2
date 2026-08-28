@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #0f172a;
+
+  /* 🎨 Design tokens — โทนหลัก: navy สงบ + accent เขียวมรกตเดียว (ไม่ผสมหลายเฉด) */
+  --brand-navy: #0f2942;
+  --brand-accent: #10b981;
+  --brand-gradient: linear-gradient(135deg, var(--brand-navy) 0%, #1e3a5f 100%);
+
+  /* scale รัศมีมุมเดียวกันทั้งระบบ แทนการสุ่ม rounded-[3rem]/[2.5rem]/[2rem] */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-noto-sans-thai), var(--font-inter), sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-noto-sans-thai), var(--font-inter), Arial, Helvetica, sans-serif;
+}
+
+/* ---------------------------------------------------------------
+   Utility classes ที่ใช้ซ้ำได้ทั่วระบบ — ลดการพิมพ์ class ยาวๆ ซ้ำๆ
+   และบังคับให้ทุกการ์ด/ปุ่มใช้รัศมีมุม+น้ำหนักตัวอักษรชุดเดียวกัน
+--------------------------------------------------------------- */
+.card {
+  background: white;
+  border-radius: var(--radius-xl);
+  border: 1px solid rgb(226 232 240);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.label-caps {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(100 116 139);
+}
+
+.btn-primary {
+  background: var(--brand-accent);
+  color: white;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  transition: filter 0.2s ease;
+}
+.btn-primary:hover {
+  filter: brightness(0.93);
+}
+
