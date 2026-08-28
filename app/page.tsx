@@ -10,9 +10,6 @@ import {
   signOut,
 } from 'firebase/auth';
 
-import type {
-  User as FirebaseUser,
-} from 'firebase/auth';
 
 import {
   ApiClientError,
@@ -203,7 +200,6 @@ const App = () => {
   const [showConsent, setShowConsent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [user, setUser] = useState<FirebaseUser | null>(null);
 
   // สถานะตรวจสอบการล็อกอินของเจ้าหน้าที่
   const [isAdmin, setIsAdmin] = useState(false);
@@ -213,7 +209,6 @@ const App = () => {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
 
       if (currentUser && isAllowedAdminEmail(currentUser.email)) {
         // ✅ มี session แอดมินอยู่แล้ว (เช่นตอน refresh) -> คงอยู่หน้าแอดมินต่อ
@@ -308,7 +303,6 @@ const [
 
       setIsAdmin(false);
       setView("home");
-      setUser(null);
     } catch (logoutError) {
       console.warn(
         "Admin logout failed:",
@@ -604,6 +598,30 @@ const handleLegacyTrackRequest = async (
     setLoading(false);
   }
 };
+if (!authChecked) {
+  return (
+    <div
+      className="min-h-screen bg-slate-950 flex items-center justify-center px-6"
+      role="status"
+      aria-live="polite"
+    >
+      <div className="text-center">
+        <div
+          className="w-12 h-12 mx-auto rounded-full border-4 border-slate-700 border-t-teal-400 animate-spin"
+          aria-hidden="true"
+        />
+
+        <p className="mt-5 text-white font-semibold">
+          กำลังตรวจสอบสิทธิ์การใช้งาน
+        </p>
+
+        <p className="mt-2 text-sm text-slate-400">
+          กรุณารอสักครู่
+        </p>
+      </div>
+    </div>
+  );
+}
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-800 flex flex-col selection:bg-blue-100">
       

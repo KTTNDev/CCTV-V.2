@@ -108,7 +108,41 @@ test(
     );
   },
 );
+test(
+  "ปฏิเสธวันที่คำร้องเดิมที่ไม่มีอยู่จริง",
+  () => {
+    const result =
+      trackRequestSchema.safeParse({
+        trackingId:
+          "REQ-LEGACY-DEMO-001",
+        phoneLast4: "4567",
+        eventDate: "2025-02-31",
+      });
 
+    assert.equal(
+      result.success,
+      false,
+    );
+  },
+);
+
+test(
+  "ยอมรับวันที่คำร้องเดิมในปีอธิกสุรทิน",
+  () => {
+    const result =
+      trackRequestSchema.safeParse({
+        trackingId:
+          "REQ-LEGACY-DEMO-001",
+        phoneLast4: "4567",
+        eventDate: "2024-02-29",
+      });
+
+    assert.equal(
+      result.success,
+      true,
+    );
+  },
+);
 test(
   "ปฏิเสธ field ที่ระบบไม่ได้อนุญาต",
   () => {

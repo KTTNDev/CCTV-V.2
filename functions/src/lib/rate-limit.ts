@@ -73,19 +73,28 @@ export function createClientIdentifier(
   request: RateLimitRequest,
   uid?: string,
 ): string {
-  const forwardedFor = request
-    .get("X-Forwarded-For")
-    ?.split(",")[0]
-    ?.trim();
+  const directAddress =
+    request.ip?.trim();
+
+  const forwardedAddress =
+    request
+      .get("X-Forwarded-For")
+      ?.split(",")[0]
+      ?.trim();
 
   const clientAddress =
-    request.ip ||
-    forwardedFor ||
+    directAddress ||
+    forwardedAddress ||
     "unknown-address";
 
-  return `${uid || "guest"}:${clientAddress}`;
-}
+  const normalizedUid =
+    uid?.trim() || "guest";
 
+  return (
+    `${normalizedUid}:` +
+    clientAddress
+  );
+}
 export async function enforceRateLimit(
   options: RateLimitOptions,
 ): Promise<RateLimitResult> {

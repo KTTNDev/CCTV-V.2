@@ -2,7 +2,7 @@
 
 import React, { useCallback, useState } from 'react';
 import { 
-  ArrowLeft, AlertCircle, User, Phone, Mail, Calendar, 
+  ArrowLeft, AlertCircle, User, Phone,  Calendar, 
   Camera, CheckCircle2, FileCheck, ShieldCheck, ChevronRight,
   Loader2, QrCode, Footprints, Info, MapPin, FileText, X 
 } from 'lucide-react';
@@ -12,8 +12,10 @@ import FormSection from '../forms/FormSection';
 import LoadingOverlay from '../forms/LoadingOverlay';
 import FileUploader from '../forms/FileUploader';
 import LocationPicker from '../forms/LocationPicker';
-
-import { FormDataState, FileState } from '@/types';
+import type {
+  FileState,
+  FormDataState,
+} from '@/types';
 
 interface RequestViewProps {
   formData: FormDataState;
@@ -63,7 +65,10 @@ const RequestView: React.FC<RequestViewProps> = ({
     }
 
     // เช็คการปักหมุดแผนที่
-    if (!formData.latitude || !formData.longitude) {
+   if (
+  formData.latitude === null ||
+  formData.longitude === null
+) {
       showToast("กรุณาปักหมุดตำแหน่งที่เกิดเหตุบนแผนที่");
       return;
     }
@@ -293,7 +298,12 @@ const RequestView: React.FC<RequestViewProps> = ({
                   description="เห็นข้อมูลหน้าบัตรและชื่อชัดเจน" 
                   icon={User} 
                   files={files.idCard} 
-                  onFileChange={(f: any) => setFiles((prev) => ({ ...prev, idCard: f }))} 
+                 onFileChange={(file) =>
+  setFiles((previous) => ({
+    ...previous,
+    idCard: file,
+  }))
+}
                 />
                 {/* 📌 ใบแจ้งความ (บังคับ) */}
                 <FileUploader 
@@ -301,7 +311,12 @@ const RequestView: React.FC<RequestViewProps> = ({
                   description="ต้องมีตราประทับจากสถานีตำรวจ" 
                   icon={FileText} 
                   files={files.report} 
-                  onFileChange={(f: any) => setFiles((prev) => ({ ...prev, report: f }))} 
+                 onFileChange={(file) =>
+  setFiles((previous) => ({
+    ...previous,
+    report: file,
+  }))
+}
                 />
               </div>
               <div className="mt-10">
@@ -312,7 +327,12 @@ const RequestView: React.FC<RequestViewProps> = ({
                   icon={Camera} 
                   multiple={true} 
                   files={files.scene} 
-                  onFileChange={(f: any) => setFiles((prev) => ({ ...prev, scene: f }))} 
+                onFileChange={(selectedFiles) =>
+  setFiles((previous) => ({
+    ...previous,
+    scene: selectedFiles,
+  }))
+}
                 />
               </div>
             </FormSection>
@@ -341,7 +361,9 @@ const RequestView: React.FC<RequestViewProps> = ({
                           <p className="font-bold text-emerald-900 text-lg">ขั้นตอนรับไฟล์ผ่าน LINE</p>
                           <ul className="text-emerald-900 font-medium space-y-2 text-sm opacity-90">
                               <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" /> 1. สแกน QR Code เพื่อเพิ่มเพื่อนระบบอัตโนมัติ</li>
-                              <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" /> 2. ส่งข้อความแจ้ง <span className="text-blue-800 underline underline-offset-4 font-bold bg-white/50 px-2 rounded">"เลขที่คำร้อง"</span> ของท่าน</li>
+                              <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" /> 2. ส่งข้อความแจ้ง <span className="rounded bg-white/50 px-2 font-bold text-blue-800 underline underline-offset-4">
+  เลขที่คำร้อง
+</span> ของท่าน</li>
                               <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" /> 3. ระบบส่งลิงก์ดาวน์โหลดให้ท่านตรวจสอบ</li>
                           </ul>
                       </div>

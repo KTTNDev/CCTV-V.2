@@ -1,24 +1,30 @@
 import React, {
   useState,
 } from "react";
+
 import {
+  Car,
   Eye,
   FileQuestion,
   FileText,
   FilterX,
-  ImageIcon,
+  Hammer,
+  ShieldAlert,
+  Users,
 } from "lucide-react";
 
 import type {
   CCTVRequest,
 } from "../../types";
+
 import {
   EVENT_TYPE_TH,
   formatEventDate,
   formatSubmitDate,
-  getEventIcon,
   getMiniThumbnailLink,
 } from "./utils/formatters";
+
+
 
 interface StatusConfig {
   color: string;
@@ -35,7 +41,58 @@ interface RequestTableProps {
   getStatusConfig:
     (status: string) => StatusConfig;
 }
+interface EventTypeIconProps {
+  eventType: string;
+  className?: string;
+}
 
+const EventTypeIcon:
+  React.FC<EventTypeIconProps> = ({
+    eventType,
+    className,
+  }) => {
+    switch (eventType) {
+      case "ACCIDENT":
+        return (
+          <Car
+            className={className}
+            aria-hidden="true"
+          />
+        );
+
+      case "THEFT":
+        return (
+          <ShieldAlert
+            className={className}
+            aria-hidden="true"
+          />
+        );
+
+      case "VANDALISM":
+        return (
+          <Hammer
+            className={className}
+            aria-hidden="true"
+          />
+        );
+
+      case "DISPUTE":
+        return (
+          <Users
+            className={className}
+            aria-hidden="true"
+          />
+        );
+
+      default:
+        return (
+          <FileQuestion
+            className={className}
+            aria-hidden="true"
+          />
+        );
+    }
+  };
 interface AttachmentPreviewProps {
   url: string | null;
   eventType: string;
@@ -53,8 +110,7 @@ const AttachmentPreview:
       setPreviewFailed,
     ] = useState(false);
 
-    const EventIcon =
-      getEventIcon(eventType);
+
 
     const isPdf =
       Boolean(
@@ -76,7 +132,10 @@ const AttachmentPreview:
           ) : url ? (
             <FileQuestion className="h-4 w-4 text-amber-500" />
           ) : (
-            <EventIcon className="h-4 w-4 text-slate-300" />
+        <EventTypeIcon
+  eventType={eventType}
+  className="h-4 w-4 text-slate-300"
+/>
           )}
         </div>
       );
@@ -219,11 +278,7 @@ export const RequestTable:
                 const StatusIcon =
                   status.icon;
 
-                const EventIcon =
-                  getEventIcon(
-                    request.eventType ||
-                      "OTHER",
-                  );
+             
 
                 const previewUrl =
                   request.attachments
@@ -316,8 +371,13 @@ export const RequestTable:
                     </td>
 
                     <td className="relative overflow-hidden px-5 py-6">
-                      <EventIcon className="pointer-events-none absolute -right-2 -top-2 h-20 w-20 -rotate-12 text-slate-900 opacity-[0.025]" />
-
+<EventTypeIcon
+  eventType={
+    request.eventType ||
+    "OTHER"
+  }
+  className="pointer-events-none absolute -right-2 -top-2 h-20 w-20 -rotate-12 text-slate-900 opacity-[0.025]"
+/>
                       <div className="relative z-10">
                         <p className="mb-1 text-xs font-bold text-slate-700">
                           {EVENT_TYPE_TH[

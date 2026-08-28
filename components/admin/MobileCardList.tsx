@@ -1,25 +1,29 @@
 import React, {
   useState,
 } from "react";
+
 import {
   Activity,
   Calendar,
+  Car,
   ChevronRight,
   FileQuestion,
   FileText,
-  ImageIcon,
+  Hammer,
   MapPin,
   Search,
+  ShieldAlert,
+  Users,
 } from "lucide-react";
 
 import type {
   CCTVRequest,
 } from "../../types";
+
 import {
   EVENT_TYPE_TH,
   formatEventDate,
   formatSubmitDate,
-  getEventIcon,
   getMiniThumbnailLink,
 } from "./utils/formatters";
 
@@ -38,7 +42,58 @@ interface MobileCardListProps {
   getStatusConfig:
     (status: string) => StatusConfig;
 }
+interface EventTypeIconProps {
+  eventType: string;
+  className?: string;
+}
 
+const EventTypeIcon:
+  React.FC<EventTypeIconProps> = ({
+    eventType,
+    className,
+  }) => {
+    switch (eventType) {
+      case "ACCIDENT":
+        return (
+          <Car
+            className={className}
+            aria-hidden="true"
+          />
+        );
+
+      case "THEFT":
+        return (
+          <ShieldAlert
+            className={className}
+            aria-hidden="true"
+          />
+        );
+
+      case "VANDALISM":
+        return (
+          <Hammer
+            className={className}
+            aria-hidden="true"
+          />
+        );
+
+      case "DISPUTE":
+        return (
+          <Users
+            className={className}
+            aria-hidden="true"
+          />
+        );
+
+      default:
+        return (
+          <FileQuestion
+            className={className}
+            aria-hidden="true"
+          />
+        );
+    }
+  };
 interface MobilePreviewProps {
   url: string | null;
   eventType: string;
@@ -54,8 +109,7 @@ const MobilePreview:
       setPreviewFailed,
     ] = useState(false);
 
-    const EventIcon =
-      getEventIcon(eventType);
+
 
     const isPdf =
       Boolean(
@@ -77,8 +131,11 @@ const MobilePreview:
           ) : url ? (
             <FileQuestion className="h-5 w-5 text-amber-500" />
           ) : (
-            <EventIcon className="h-5 w-5 text-slate-300" />
-          )}
+         <EventTypeIcon
+  eventType={eventType}
+  className="h-5 w-5 text-slate-300"
+/>
+         )}
         </div>
       );
     }
@@ -182,11 +239,6 @@ export const MobileCardList:
           const StatusIcon =
             status.icon;
 
-          const EventIcon =
-            getEventIcon(
-              request.eventType ||
-                "OTHER",
-            );
 
           const previewUrl =
             request.attachments
@@ -209,8 +261,13 @@ export const MobileCardList:
                 "border-slate-200 bg-white"
               }`}
             >
-              <EventIcon className="pointer-events-none absolute -bottom-7 -right-7 h-36 w-36 -rotate-12 text-slate-900 opacity-[0.025]" />
-
+<EventTypeIcon
+  eventType={
+    request.eventType ||
+    "OTHER"
+  }
+  className="pointer-events-none absolute -bottom-7 -right-7 h-36 w-36 -rotate-12 text-slate-900 opacity-[0.025]"
+/>
               <div className="relative z-10">
                 <div className="mb-5 flex items-start justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">

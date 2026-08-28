@@ -1,11 +1,13 @@
-// components/ui/LiveCCTVGallery.tsx
-import React, { useState } from 'react';
-import { 
-  Video, Eye, MapPin, Play, MonitorPlay, Zap, 
-  Activity, // ✅ เพิ่มตัวนี้เข้าไปครับ
-  AlertTriangle, 
-  ExternalLink 
-} from 'lucide-react';
+import {
+  useState,
+} from "react";
+
+import {
+  Activity,
+  MonitorPlay,
+  Video,
+  Zap,
+} from "lucide-react";
 const LiveCCTVGallery = () => {
   // ✅ เปลี่ยนจาก Local IP เป็น YouTube Embed Link
   const [cameras] = useState([
@@ -100,14 +102,15 @@ const LiveCCTVGallery = () => {
             <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-2">เลือกจุดรับชม</h4>
             <div className="space-y-3">
               {cameras.map((cam) => (
-                <button
-                  key={cam.id}
-                  onClick={() => setActiveCam(cam)}
-                  className={`w-full p-4 rounded-3xl border transition-all flex items-center gap-4 group ${
-                    activeCam.id === cam.id 
-                    ? 'bg-blue-600 border-blue-600 text-white shadow-xl shadow-blue-100' 
-                    : 'bg-slate-50 border-slate-100 text-slate-600 hover:bg-white hover:border-blue-200'
-                  }`}
+               <button
+  key={cam.id}
+  type="button"
+  onClick={() =>
+    setActiveCam(cam)
+  }
+  aria-pressed={
+    activeCam.id === cam.id
+  }
                 >
                   <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
                     activeCam.id === cam.id ? 'bg-white/20' : 'bg-white shadow-sm'

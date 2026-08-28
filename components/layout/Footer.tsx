@@ -1,57 +1,123 @@
-import React from 'react';
-import { Building2, PhoneCall } from 'lucide-react';
+import {
+  Building2,
+  Clock3,
+  PhoneCall,
+  ShieldCheck,
+} from "lucide-react";
+
+const CONTACT_PHONE =
+  "076613801";
 
 const Footer = () => (
-  <footer className="bg-gray-50 border-t border-gray-200 pt-16 pb-8">
-    <div className="max-w-6xl mx-auto px-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
-        <div className="space-y-4">
+  <footer className="border-t border-slate-200 bg-white">
+    <div className="mx-auto max-w-7xl px-5 py-12 sm:px-6 lg:px-8">
+      <div className="grid gap-10 lg:grid-cols-[1.35fr_1fr_1fr]">
+        <section>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center text-white font-bold group-hover:bg-blue-700 transition-colors shadow-sm">
-                   <img  src="https://rawaicity.app/__images/banner.png" alt="" />
-
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-blue-900 text-white shadow-lg shadow-teal-100">
+              <ShieldCheck
+                className="h-5 w-5"
+                aria-hidden="true"
+              />
             </div>
-            <span className="font-bold text-xl text-gray-900">CCTV Service</span>
+
+            <div>
+              <p className="font-bold tracking-tight text-slate-950">
+                CCTV RAWAI
+              </p>
+
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-teal-600">
+                E-Service Portal
+              </p>
+            </div>
           </div>
-          <p className="text-gray-500 text-sm leading-relaxed">
-            ระบบบริการประชาชนออนไลน์ ด้านการขอข้อมูลภาพกล้องวงจรปิด<br/>
-            เพื่ออำนวยความสะดวก รวดเร็ว และโปร่งใส
-          </p>
-        </div>
 
-        <div className="space-y-4">
-          <h4 className="font-bold text-gray-900">ติดต่อเรา</h4>
-          <ul className="space-y-3 text-sm text-gray-600">
-            <li className="flex items-start gap-3">
-              <Building2 className="w-5 h-5 text-gray-400 mt-0.5" />
-              <span>ศูนย์ควบคุมและสั่งการระบบ CCTV<br/>เทศบาลตำบลราไวย์</span>
-            </li>
-            <li className="flex items-center gap-3">
-              <PhoneCall className="w-5 h-5 text-gray-400" />
-              <span>076613801 (เทศบาลตำบลราไวย์)</span>
-            </li>
-          </ul>
-        </div>
+          <p className="mt-5 max-w-md text-sm leading-7 text-slate-500">
+            ระบบบริการประชาชนออนไลน์
+            สำหรับยื่นคำร้องขอข้อมูลภาพกล้องวงจรปิด
+            สะดวก ปลอดภัย และตรวจสอบสถานะได้
+          </p>
+        </section>
 
-        <div className="space-y-4">
-          <h4 className="font-bold text-gray-900">เวลาทำการ</h4>
-          <p className="text-sm text-gray-600">
-            จันทร์ - ศุกร์ : 08.30 - 16.30 น.<br/>
-            (เว้นวันหยุดราชการ)
-          </p>
-          <p className="text-xs text-gray-400 mt-4">
-            * ระบบออนไลน์เปิดให้บริการ 24 ชั่วโมง
-          </p>
-        </div>
+        <section>
+          <h2 className="text-sm font-bold text-slate-950">
+            ติดต่อหน่วยงาน
+          </h2>
+
+          <div className="mt-5 space-y-4">
+            <div className="flex items-start gap-3">
+              <Building2
+                className="mt-0.5 h-5 w-5 shrink-0 text-slate-400"
+                aria-hidden="true"
+              />
+
+              <p className="text-sm leading-6 text-slate-600">
+                ศูนย์ควบคุมและสั่งการระบบ
+                CCTV
+                <br />
+                เทศบาลตำบลราไวย์
+              </p>
+            </div>
+
+            <a
+              href={`tel:${CONTACT_PHONE}`}
+              className="group flex items-center gap-3 rounded-xl text-sm font-semibold text-slate-600 transition hover:text-teal-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-teal-100"
+              aria-label="โทรศัพท์ติดต่อเทศบาลตำบลราไวย์ 076 613 801"
+            >
+              <PhoneCall
+                className="h-5 w-5 shrink-0 text-slate-400 transition group-hover:text-teal-600"
+                aria-hidden="true"
+              />
+
+              076 613 801
+            </a>
+          </div>
+        </section>
+
+        <section>
+          <h2 className="text-sm font-bold text-slate-950">
+            เวลาทำการ
+          </h2>
+
+          <div className="mt-5 flex items-start gap-3">
+            <Clock3
+              className="mt-0.5 h-5 w-5 shrink-0 text-slate-400"
+              aria-hidden="true"
+            />
+
+            <div>
+              <p className="text-sm font-semibold text-slate-700">
+                จันทร์–ศุกร์
+              </p>
+
+              <p className="mt-1 text-sm text-slate-500">
+                08.30–16.30 น.
+              </p>
+
+              <p className="mt-2 text-xs text-slate-400">
+                ยกเว้นวันหยุดราชการ
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3">
+            <p className="text-xs font-semibold text-emerald-700">
+              ระบบยื่นคำร้องออนไลน์เปิดให้บริการ
+              24 ชั่วโมง
+            </p>
+          </div>
+        </section>
       </div>
 
-      <div className="border-t border-gray-200 pt-8 text-center text-sm text-gray-400 flex flex-col md:flex-row justify-between items-center gap-4">
-        <p>พัฒนาโดย ทีมฝ่ายนโยบายและแผน เทศบาลตำบลราไวย์</p>
-        <div className="flex gap-6">
-          <a href="#" className="hover:text-gray-600">นโยบายความเป็นส่วนตัว</a>
-          <a href="#" className="hover:text-gray-600">ข้อตกลงการใช้งาน</a>
-          <a href="#" className="hover:text-gray-600">ช่วยเหลือ</a>
-        </div>
+      <div className="mt-10 flex flex-col gap-3 border-t border-slate-100 pt-6 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+        <p>
+          © {new Date().getFullYear()}{" "}
+          เทศบาลตำบลราไวย์
+        </p>
+
+        <p>
+          ดูแลระบบโดยฝ่ายนโยบายและแผน
+        </p>
       </div>
     </div>
   </footer>

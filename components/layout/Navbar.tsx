@@ -1,7 +1,10 @@
 'use client';
 
 import React from 'react';
-import { LayoutGrid, Search, Lock } from 'lucide-react';
+import {
+  LayoutGrid,
+  Search,
+} from 'lucide-react';
 
 interface NavbarProps {
   view: string;
@@ -20,11 +23,13 @@ const Navbar: React.FC<NavbarProps> = ({ view, setView, onRequestClick }) => {
         <div className="flex justify-between items-center h-20">
           
           {/* --- Brand Logo Area --- */}
-          <div 
-            onClick={() => setView('home')} 
-            className="flex items-center gap-3.5 cursor-pointer group select-none"
-          >
-            <div className="relative w-12 rounded-xl overflow-hidden shadow-sm group-hover:shadow-md group-hover:scale-105 transition-all duration-300 bg-slate-100 flex-shrink-0">
+         <button
+  type="button"
+  onClick={() => setView('home')}
+  aria-label="กลับหน้าหลัก CCTV Rawai"
+  className="group flex items-center gap-3.5 rounded-xl text-left select-none focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-teal-100"
+>
+            <div className="relative h-12 w-12 rounded-xl overflow-hidden shadow-sm group-hover:shadow-md group-hover:scale-105 transition-all duration-300 bg-slate-100 flex-shrink-0">
                <img 
                   src="https://lh3.googleusercontent.com/d/1QCbgntRqbIAlTmTBE85DEtJtx91U-1ll?authuser=0" 
                   alt="Rawai CCTV Logo" 
@@ -43,7 +48,7 @@ const Navbar: React.FC<NavbarProps> = ({ view, setView, onRequestClick }) => {
                 E-Service Portal
               </span>
             </div>
-          </div>
+          </button>
           
           {/* --- Navigation & Admin Login --- */}
           <div className="flex items-center gap-4">

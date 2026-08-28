@@ -93,7 +93,7 @@ function parseStaffRole(
   return null;
 }
 
-function normalizeEmail(
+export function normalizeEmail(
   value: string | null,
 ): string | null {
   if (!value) {
@@ -108,7 +108,7 @@ function normalizeEmail(
   return normalized || null;
 }
 
-function isAllowlistedAdminEmail(
+export function isAllowlistedAdminEmail(
   email: string | null,
 ): boolean {
   const normalizedEmail =
@@ -232,10 +232,11 @@ export async function requireRequestManager(
     user.role === "admin" ||
     user.role === "officer";
 
-  const hasLegacyAdminEmail =
-    isAllowlistedAdminEmail(
-      user.email,
-    );
+const hasLegacyAdminEmail =
+  user.emailVerified &&
+  isAllowlistedAdminEmail(
+    user.email,
+  );
 
   if (
     !hasManagementRole &&

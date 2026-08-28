@@ -11,12 +11,18 @@ import type {
   PublicHotspot,
 } from '../../lib/api-client';
 import AccidentMap from '../ui/AccidentMap';
-import LiveCCTVGallery from '../ui/LiveCCTVGallery';
 
-import { 
-  Camera, Play, Maximize2, Radio, Search, FileText, Upload, CheckCircle, User, Activity, 
-  ShieldCheck, Zap, Lock, Settings, LayoutGrid, X, Calendar, 
-  MapPinned, Megaphone, Building2, ExternalLink, Globe, Users, Building,
+import {
+  Camera,
+  ExternalLink,
+  Globe,
+  LayoutGrid,
+  Lock,
+  Maximize2,
+  Radio,
+  ShieldCheck,
+  X,
+  Zap,
 } from 'lucide-react';
 
 interface HomeViewProps {
@@ -171,9 +177,17 @@ const HomeView: React.FC<HomeViewProps> = ({ setView, onRequestClick }) => {
               <h4 className="text-sm font-bold text-slate-800">ทางเข้าบริการอื่นๆ</h4>
             </div>
             <div className="p-3 space-y-1">
-              {quickLinks.map((link, idx) => (
-                <a key={idx} href={link.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 p-3 rounded-2xl hover:bg-white hover:shadow-md transition-all group">
-                  <div className={`w-10 h-10 rounded-xl ${link.color} text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}><img src= {link.imageUrl} className="w-7" /></div>
+             {quickLinks.map((link) => (
+  <a
+    key={link.url} href={link.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 p-3 rounded-2xl hover:bg-white hover:shadow-md transition-all group">
+                  <div className={`w-10 h-10 rounded-xl ${link.color} text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}><img
+  src={link.imageUrl}
+  alt=""
+  width={28}
+  height={28}
+  loading="lazy"
+  className="h-7 w-7 object-contain"
+/></div>
                   <div className="flex-1 text-left"><p className="text-xs font-bold text-slate-700 leading-tight">{link.name}</p><p className="text-[10px] text-slate-400 font-bold uppercase">เข้าใช้งาน</p></div>
                   <ExternalLink className="w-3 h-3 text-slate-300" />
                 </a>
@@ -181,7 +195,19 @@ const HomeView: React.FC<HomeViewProps> = ({ setView, onRequestClick }) => {
             </div>
           </div>
         )}
-        <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all active:scale-90 hover:scale-110 text-white" style={{ background: isMenuOpen ? '#0f172a' : brandGradient }}>
+       <button
+  type="button"
+  onClick={() =>
+    setIsMenuOpen(
+      (current) => !current,
+    )
+  }
+  aria-expanded={isMenuOpen}
+  aria-label={
+    isMenuOpen
+      ? "ปิดเมนูบริการอื่น"
+      : "เปิดเมนูบริการอื่น"
+  } className="w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all active:scale-90 hover:scale-110 text-white" style={{ background: isMenuOpen ? '#0f172a' : brandGradient }}>
           {isMenuOpen ? <X className="w-8 h-8" /> : <LayoutGrid className="w-8 h-8" />}
           {!isMenuOpen && <span className="absolute top-0 right-0 w-4 h-4 bg-red-50 border-2 border-white rounded-full animate-ping"></span>}
         </button>

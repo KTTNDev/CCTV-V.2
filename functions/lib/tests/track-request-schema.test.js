@@ -48,6 +48,22 @@ const track_request_1 = require("../schemas/track-request");
     });
     strict_1.default.equal(result.success, false);
 });
+(0, node_test_1.default)("ปฏิเสธวันที่คำร้องเดิมที่ไม่มีอยู่จริง", () => {
+    const result = track_request_1.trackRequestSchema.safeParse({
+        trackingId: "REQ-LEGACY-DEMO-001",
+        phoneLast4: "4567",
+        eventDate: "2025-02-31",
+    });
+    strict_1.default.equal(result.success, false);
+});
+(0, node_test_1.default)("ยอมรับวันที่คำร้องเดิมในปีอธิกสุรทิน", () => {
+    const result = track_request_1.trackRequestSchema.safeParse({
+        trackingId: "REQ-LEGACY-DEMO-001",
+        phoneLast4: "4567",
+        eventDate: "2024-02-29",
+    });
+    strict_1.default.equal(result.success, true);
+});
 (0, node_test_1.default)("ปฏิเสธ field ที่ระบบไม่ได้อนุญาต", () => {
     const result = track_request_1.trackRequestSchema.safeParse({
         trackingId: "REQ-LEGACY-DEMO-001",

@@ -1,6 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ADMIN_EMAIL_ALLOWLIST = exports.STAFF_ROLES = void 0;
+exports.normalizeEmail = normalizeEmail;
+exports.isAllowlistedAdminEmail = isAllowlistedAdminEmail;
 exports.requireAuthenticatedUser = requireAuthenticatedUser;
 exports.requireStaffRole = requireStaffRole;
 exports.requireRequestManager = requireRequestManager;
@@ -123,7 +125,8 @@ async function requireRequestManager(request) {
     }
     const hasManagementRole = user.role === "admin" ||
         user.role === "officer";
-    const hasLegacyAdminEmail = isAllowlistedAdminEmail(user.email);
+    const hasLegacyAdminEmail = user.emailVerified &&
+        isAllowlistedAdminEmail(user.email);
     if (!hasManagementRole &&
         !hasLegacyAdminEmail) {
         throw new http_error_1.HttpError({

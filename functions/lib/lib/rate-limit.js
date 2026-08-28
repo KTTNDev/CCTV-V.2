@@ -34,14 +34,17 @@ function normalizeScope(scope) {
     return normalized;
 }
 function createClientIdentifier(request, uid) {
-    const forwardedFor = request
+    const directAddress = request.ip?.trim();
+    const forwardedAddress = request
         .get("X-Forwarded-For")
         ?.split(",")[0]
         ?.trim();
-    const clientAddress = request.ip ||
-        forwardedFor ||
+    const clientAddress = directAddress ||
+        forwardedAddress ||
         "unknown-address";
-    return `${uid || "guest"}:${clientAddress}`;
+    const normalizedUid = uid?.trim() || "guest";
+    return (`${normalizedUid}:` +
+        clientAddress);
 }
 async function enforceRateLimit(options) {
     const { identifier, maxAttempts, windowMs, } = options;
