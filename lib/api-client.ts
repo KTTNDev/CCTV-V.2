@@ -372,6 +372,36 @@ export async function trackRequest(
     },
   );
 }
+export interface LegacyTrackRequestPayload {
+  trackingId: string;
+  phoneLast4: string;
+  eventDate: string;
+}
+
+export async function trackLegacyRequest(
+  payload: LegacyTrackRequestPayload,
+): Promise<TrackRequestResult> {
+  return postJson<TrackRequestResult>(
+    getEndpoint(
+      "/api/requests/track",
+      "trackRequest",
+    ),
+    {
+      trackingId: payload.trackingId
+        .trim()
+        .toUpperCase(),
+
+      phoneLast4: payload.phoneLast4
+        .replace(/\D/g, "")
+        .slice(-4),
+
+      eventDate: payload.eventDate.trim(),
+    },
+    {
+      requireAuthentication: false,
+    },
+  );
+}
 export interface PublicHotspot {
   lat: number;
   lng: number;

@@ -17,3 +17,7 @@ export {
 export {
   updateRequest,
 } from "./functions/update-request";
+
+export {
+  processNotificationOutbox,
+} from "./functions/process-notification-outbox";

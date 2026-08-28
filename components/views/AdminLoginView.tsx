@@ -1,139 +1,426 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-// ✅ นำเข้า signOut เพิ่มเพื่อใช้เตะคนที่ไม่อยู่ใน Whitelist ออก
-import { auth } from '../../lib/firebase';
-import { isAllowedAdminEmail } from '../../lib/adminEmails';
-import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
-import { Lock, ShieldCheck, ArrowLeft, Loader2, AlertCircle, Mail, Building2 } from 'lucide-react';
+import React, {
+  useState,
+} from "react";
+import {
+  GoogleAuthProvider,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  signOut,
+} from "firebase/auth";
+import {
+  AlertCircle,
+  ArrowLeft,
+  Building2,
+  Loader2,
+  Lock,
+  Mail,
+  ShieldCheck,
+} from "lucide-react";
+
+import {
+  isAllowedAdminEmail,
+} from "../../lib/adminEmails";
+import { auth } from "../../lib/firebase";
 
 interface AdminLoginViewProps {
-  setView: (view: string) => void;
+  setView:
+    (view: string) => void;
   onLoginSuccess: () => void;
 }
 
-const AdminLoginView: React.FC<AdminLoginViewProps> = ({ setView, onLoginSuccess }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+function getAuthErrorCode(
+  error: unknown,
+): string | null {
+  if (
+    typeof error !== "object" ||
+    error === null ||
+    !("code" in error) ||
+    typeof error.code !== "string"
+  ) {
+    return null;
+  }
 
-  const brandGradient = "linear-gradient(90deg, hsla(222, 51%, 34%, 1) 0%, hsla(119, 37%, 45%, 1) 100%)";
+  return error.code;
+}
 
-  // 🛡️ ฟังก์ชันตรวจสอบอีเมล (Gatekeeper)
-  const checkAccess = async (userEmail: string | null) => {
-    if (isAllowedAdminEmail(userEmail)) {
-      console.log("✅ Admin Access Granted:", userEmail);
-      onLoginSuccess();
-    } else {
-      console.log("⛔ Unauthorized Access:", userEmail);
-      await signOut(auth); // เตะออกจากระบบ Firebase ทันที
-      setError(`ปฏิเสธการเข้าถึง: บัญชี ${userEmail || 'นี้'} ไม่มีสิทธิ์ในระบบ`);
-      setLoading(false);
-    }
-  };
+function getLoginErrorMessage(
+  error: unknown,
+): string {
+  const code =
+    getAuthErrorCode(error);
 
-  // ✅ ฟังก์ชัน Login ด้วย Google
-  const handleGoogleLogin = async () => {
-    setLoading(true);
-    setError('');
-    const provider = new GoogleAuthProvider();
-    
-    try {
-      const result = await signInWithPopup(auth, provider);
-      // ส่งอีเมลไปตรวจสอบกับรายชื่อที่อนุญาต
-      await checkAccess(result.user.email);
-    } catch (err: any) {
-      console.error("Google Login Error:", err.code);
-      setError('ไม่สามารถเข้าสู่ระบบด้วย Google ได้ กรุณาลองใหม่อีกครั้ง');
-      setLoading(false);
-    }
-  };
+  switch (code) {
+    case "auth/invalid-credential":
+    case "auth/invalid-email":
+    case "auth/user-not-found":
+    case "auth/wrong-password":
+      return "อีเมลหรือรหัสผ่านไม่ถูกต้อง";
 
-  // ✅ ฟังก์ชัน Login ด้วย Email/Password
-  const handleEmailLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    
-    try {
-      const result = await signInWithEmailAndPassword(auth, email, password);
-      // ส่งอีเมลไปตรวจสอบกับรายชื่อที่อนุญาต
-      await checkAccess(result.user.email);
-    } catch (err: any) {
-      console.error("Email Login Error:", err);
-      setError('อีเมลหรือรหัสผ่านไม่ถูกต้องครับ');
-      setLoading(false);
-    }
-  };
+    case "auth/too-many-requests":
+      return "มีการพยายามเข้าสู่ระบบหลายครั้งเกินไป กรุณารอสักครู่แล้วลองใหม่";
 
-  return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 font-sans">
-      <div className="w-full max-w-md animate-in zoom-in-95 duration-300">
-        <button onClick={() => setView('home')} className="mb-8 inline-flex items-center gap-2 text-slate-400 hover:text-slate-600 transition-colors text-sm font-bold group">
-          <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" /> กลับหน้าหลัก
-        </button>
+    case "auth/network-request-failed":
+      return "ไม่สามารถเชื่อมต่อระบบยืนยันตัวตน กรุณาตรวจสอบอินเทอร์เน็ต";
 
-        <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden">
-          <div className="p-10 text-center bg-slate-50/50 border-b border-slate-100">
-            <div className="w-20 h-20 rounded-3xl bg-white shadow-md border border-slate-100 flex items-center justify-center mx-auto mb-6 text-blue-900">
-              <Building2 className="w-10 h-10" />
-            </div>
-            <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Staff Access</h2>
-            <p className="text-slate-500 text-[10px] font-bold mt-1 uppercase tracking-wide opacity-70">ระบบจัดการดิจิทัลราไวย์</p>
-          </div>
+    case "auth/popup-blocked":
+      return "Browser ปิดกั้นหน้าต่างเข้าสู่ระบบ กรุณาอนุญาต Popup แล้วลองใหม่";
 
-          <div className="p-10 space-y-6">
-            {/* 🚨 แจ้งเตือน Error กรณีอีเมลไม่อยู่ใน Whitelist */}
-            {error && (
-              <div className="p-4 bg-red-50 border border-red-100 rounded-2xl flex items-start gap-3 text-red-600 text-xs font-bold animate-in shake">
-                <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                <p className="leading-relaxed">{error}</p>
+    case "auth/popup-closed-by-user":
+    case "auth/cancelled-popup-request":
+      return "ยกเลิกการเข้าสู่ระบบด้วย Google";
+
+    case "auth/account-exists-with-different-credential":
+      return "บัญชีนี้เคยเข้าสู่ระบบด้วยวิธีอื่น กรุณาใช้วิธีเดิม";
+
+    default:
+      return "ไม่สามารถเข้าสู่ระบบได้ กรุณาลองใหม่อีกครั้ง";
+  }
+}
+
+const AdminLoginView:
+  React.FC<
+    AdminLoginViewProps
+  > = ({
+    setView,
+    onLoginSuccess,
+  }) => {
+    const [email, setEmail] =
+      useState("");
+
+    const [
+      password,
+      setPassword,
+    ] = useState("");
+
+    const [loading, setLoading] =
+      useState(false);
+
+    const [error, setError] =
+      useState("");
+
+    const checkAccess =
+      async (
+        userEmail:
+          | string
+          | null,
+      ) => {
+        if (
+          isAllowedAdminEmail(
+            userEmail,
+          )
+        ) {
+          // บังคับโหลด Token ใหม่
+          // เพื่อรับ Custom Claims ล่าสุด
+          await auth.currentUser
+            ?.getIdToken(true);
+
+          onLoginSuccess();
+          return;
+        }
+
+        await signOut(auth);
+
+        throw new Error(
+          "ADMIN_ACCESS_DENIED",
+        );
+      };
+
+    const handleGoogleLogin =
+      async () => {
+        if (loading) {
+          return;
+        }
+
+        setLoading(true);
+        setError("");
+
+        try {
+          const provider =
+            new GoogleAuthProvider();
+
+          provider.setCustomParameters({
+            prompt:
+              "select_account",
+          });
+
+          const result =
+            await signInWithPopup(
+              auth,
+              provider,
+            );
+
+          await checkAccess(
+            result.user.email,
+          );
+        } catch (loginError) {
+          console.warn(
+            "Google admin login failed",
+          );
+
+          if (
+            loginError instanceof
+              Error &&
+            loginError.message ===
+              "ADMIN_ACCESS_DENIED"
+          ) {
+            setError(
+              "บัญชีนี้ไม่มีสิทธิ์เข้าใช้งานระบบเจ้าหน้าที่",
+            );
+          } else {
+            setError(
+              getLoginErrorMessage(
+                loginError,
+              ),
+            );
+          }
+        } finally {
+          setLoading(false);
+        }
+      };
+
+    const handleEmailLogin =
+      async (
+        event:
+          React.FormEvent,
+      ) => {
+        event.preventDefault();
+
+        if (loading) {
+          return;
+        }
+
+        setLoading(true);
+        setError("");
+
+        try {
+          const normalizedEmail =
+            email
+              .trim()
+              .toLowerCase();
+
+          const result =
+            await signInWithEmailAndPassword(
+              auth,
+              normalizedEmail,
+              password,
+            );
+
+          await checkAccess(
+            result.user.email,
+          );
+        } catch (loginError) {
+          console.warn(
+            "Email admin login failed",
+          );
+
+          setPassword("");
+
+          if (
+            loginError instanceof
+              Error &&
+            loginError.message ===
+              "ADMIN_ACCESS_DENIED"
+          ) {
+            setError(
+              "บัญชีนี้ไม่มีสิทธิ์เข้าใช้งานระบบเจ้าหน้าที่",
+            );
+          } else {
+            setError(
+              getLoginErrorMessage(
+                loginError,
+              ),
+            );
+          }
+        } finally {
+          setLoading(false);
+        }
+      };
+
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 p-5 font-sans">
+        <div className="w-full max-w-md">
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() =>
+              setView("home")
+            }
+            className="group mb-7 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-slate-900 disabled:opacity-50"
+          >
+            <ArrowLeft className="h-4 w-4 transition group-hover:-translate-x-1" />
+            กลับหน้าหลัก
+          </button>
+
+          <div className="overflow-hidden rounded-[30px] border border-slate-200 bg-white shadow-2xl shadow-slate-200/70">
+            <header className="border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white px-8 py-9 text-center">
+              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-slate-200 bg-white text-blue-900 shadow-md">
+                <Building2 className="h-8 w-8" />
               </div>
-            )}
 
-            {/* 🔴 ปุ่ม Login ด้วย Google */}
-            <button 
-              onClick={handleGoogleLogin}
-              disabled={loading}
-              className="w-full py-4 bg-white border-2 border-slate-100 rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-50 hover:border-slate-200 transition-all active:scale-95 disabled:opacity-50 shadow-sm"
-            >
-              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
-              <span className="font-bold text-slate-700">เข้าใช้งานด้วย Gmail</span>
-            </button>
+              <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-[9px] font-bold uppercase tracking-[0.16em] text-emerald-700">
+                <ShieldCheck className="h-3 w-3" />
+                Authorized Staff
+              </div>
 
-            <div className="relative flex items-center py-2">
-              <div className="flex-grow border-t border-slate-100"></div>
-              <span className="flex-shrink mx-4 text-[10px] font-bold text-slate-300 uppercase">หรือใช้รหัสผ่าน</span>
-              <div className="flex-grow border-t border-slate-100"></div>
-            </div>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-950">
+                ระบบเจ้าหน้าที่
+              </h1>
 
-            {/* ฟอร์ม Email/Password */}
-            <form onSubmit={handleEmailLogin} className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest ml-2">อีเมลเจ้าหน้าที่</label>
-                <div className="relative group">
-                  <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 w-5 h-5 group-focus-within:text-blue-600 transition-colors" />
-                  <input required type="email" className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-100 focus:bg-white outline-none transition-all font-bold text-slate-700" placeholder="admin@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+              <p className="mt-2 text-xs leading-relaxed text-slate-500">
+                ศูนย์กล้องวงจรปิด
+                เทศบาลตำบลราไวย์
+              </p>
+            </header>
+
+            <div className="space-y-6 p-7 md:p-9">
+              {error && (
+                <div
+                  role="alert"
+                  aria-live="polite"
+                  className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700"
+                >
+                  <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+
+                  <p className="text-xs font-semibold leading-relaxed">
+                    {error}
+                  </p>
                 </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest ml-2">รหัสผ่าน</label>
-                <div className="relative group">
-                  <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 w-5 h-5 group-focus-within:text-blue-600 transition-colors" />
-                  <input required type="password" className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-100 focus:bg-white outline-none transition-all font-bold text-slate-700 tracking-widest" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
-                </div>
-              </div>
-              <button type="submit" disabled={loading} className="w-full py-5 rounded-2xl text-white font-bold text-lg shadow-xl transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3 mt-4" style={{ background: brandGradient }}>
-                {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <ShieldCheck className="w-6 h-6" />}
-                {loading ? 'กำลังตรวจสอบ...' : 'เข้าสู่ระบบ'}
+              )}
+
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => {
+                  void handleGoogleLogin();
+                }}
+                className="flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-bold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {loading ? (
+                  <Loader2 className="h-5 w-5 animate-spin text-blue-700" />
+                ) : (
+                  <img
+                    src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+                    alt=""
+                    className="h-5 w-5"
+                  />
+                )}
+
+                เข้าสู่ระบบด้วย Google
               </button>
-            </form>
+
+              <div className="flex items-center gap-3">
+                <span className="h-px flex-1 bg-slate-100" />
+
+                <span className="text-[9px] font-bold uppercase tracking-[0.16em] text-slate-300">
+                  หรือใช้อีเมล
+                </span>
+
+                <span className="h-px flex-1 bg-slate-100" />
+              </div>
+
+              <form
+                onSubmit={(event) => {
+                  void handleEmailLogin(
+                    event,
+                  );
+                }}
+                className="space-y-4"
+              >
+                <div>
+                  <label
+                    htmlFor="admin-email"
+                    className="mb-2 ml-1 block text-[10px] font-bold uppercase tracking-wide text-slate-500"
+                  >
+                    อีเมลเจ้าหน้าที่
+                  </label>
+
+                  <div className="relative">
+                    <Mail className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-300" />
+
+                    <input
+                      id="admin-email"
+                      type="email"
+                      required
+                      autoComplete="username"
+                      inputMode="email"
+                      value={email}
+                      disabled={loading}
+                      onChange={(
+                        event,
+                      ) =>
+                        setEmail(
+                          event.target
+                            .value,
+                        )
+                      }
+                      placeholder="staff@example.com"
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-4 pl-12 pr-5 text-sm font-semibold text-slate-800 outline-none transition placeholder:text-slate-300 focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-50 disabled:opacity-60"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="admin-password"
+                    className="mb-2 ml-1 block text-[10px] font-bold uppercase tracking-wide text-slate-500"
+                  >
+                    รหัสผ่าน
+                  </label>
+
+                  <div className="relative">
+                    <Lock className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-300" />
+
+                    <input
+                      id="admin-password"
+                      type="password"
+                      required
+                      minLength={6}
+                      autoComplete="current-password"
+                      value={password}
+                      disabled={loading}
+                      onChange={(
+                        event,
+                      ) =>
+                        setPassword(
+                          event.target
+                            .value,
+                        )
+                      }
+                      placeholder="••••••••"
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-4 pl-12 pr-5 text-sm font-semibold tracking-widest text-slate-800 outline-none transition placeholder:text-slate-300 focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-50 disabled:opacity-60"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="mt-2 flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-blue-900 to-emerald-700 px-5 py-4 text-sm font-bold text-white shadow-xl shadow-blue-100 transition hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {loading ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <ShieldCheck className="h-5 w-5" />
+                  )}
+
+                  {loading
+                    ? "กำลังตรวจสอบ..."
+                    : "เข้าสู่ระบบ"}
+                </button>
+              </form>
+
+              <p className="text-center text-[10px] leading-relaxed text-slate-400">
+                สำหรับเจ้าหน้าที่ที่ได้รับอนุญาตเท่านั้น
+                การใช้งานระบบจะถูกบันทึกใน
+                Audit Log
+              </p>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
 export default AdminLoginView;

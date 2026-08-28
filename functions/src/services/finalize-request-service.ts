@@ -1,3 +1,7 @@
+import {
+  randomUUID,
+} from "node:crypto";
+
 import { Timestamp } from "firebase-admin/firestore";
 
 import type {
@@ -11,10 +15,15 @@ import { HttpError } from "../lib/http-error";
 import type {
   FinalizeRequestInput,
 } from "../schemas/finalize-request";
+const REQUEST_COLLECTION =
+  "cctv_requests";
 
-const REQUEST_COLLECTION = "cctv_requests";
 const TRACKING_INDEX_COLLECTION =
   "tracking_index";
+
+const NOTIFICATION_OUTBOX_COLLECTION =
+  "notification_outbox";
+
 
 type UploadKind =
   | "id-card"
@@ -178,7 +187,39 @@ function getTimestamp(
     ? value
     : null;
 }
+function getRequiredRequestString(
+  requestData:
+    Record<string, unknown>,
+  fieldName: string,
+  maximumLength: number,
+): string {
+  const value =
+    requestData[fieldName];
 
+  if (
+    typeof value !== "string"
+  ) {
+    throw new Error(
+      `Request field ${fieldName} is missing`,
+    );
+  }
+
+  const normalized =
+    value
+      .trim()
+      .slice(
+        0,
+        maximumLength,
+      );
+
+  if (!normalized) {
+    throw new Error(
+      `Request field ${fieldName} is empty`,
+    );
+  }
+
+  return normalized;
+}
 function assertRequestOwner(
   requestData: Record<string, unknown>,
   user: AuthenticatedUser,
@@ -427,7 +468,15 @@ export async function finalizeDraftRequest(
   const requestRef = adminDb
     .collection(REQUEST_COLLECTION)
     .doc(input.requestId);
+const notificationReference =
+  adminDb
+    .collection(
+      NOTIFICATION_OUTBOX_COLLECTION,
+    )
+    .doc(input.requestId);
 
+const notificationRetryKey =
+  randomUUID();
   const initialSnapshot =
     await requestRef.get();
 
@@ -580,7 +629,69 @@ export async function finalizeDraftRequest(
             merge: true,
           },
         );
+transaction.create(
+  notificationReference,
+  {
+    schemaVersion: 1,
 
+    type:
+      "new_request",
+
+    status:
+      "pending",
+
+    attempts: 0,
+
+    requestId:
+      input.requestId,
+
+    trackingId,
+
+    eventType:
+      getRequiredRequestString(
+        currentData,
+        "eventType",
+        50,
+      ),
+
+    eventDate:
+      getRequiredRequestString(
+        currentData,
+        "eventDate",
+        20,
+      ),
+
+    eventTimeStart:
+      getRequiredRequestString(
+        currentData,
+        "eventTimeStart",
+        10,
+      ),
+
+    eventTimeEnd:
+      getRequiredRequestString(
+        currentData,
+        "eventTimeEnd",
+        10,
+      ),
+
+    location:
+      getRequiredRequestString(
+        currentData,
+        "location",
+        300,
+      ),
+
+    retryKey:
+      notificationRetryKey,
+
+    createdAt:
+      submittedAt,
+
+    updatedAt:
+      submittedAt,
+  },
+);
         return {
           requestId: input.requestId,
           trackingId,

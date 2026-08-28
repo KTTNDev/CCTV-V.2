@@ -8,6 +8,38 @@ const TIME_PATTERN = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
 const PASSPORT_PATTERN = /^[A-Z0-9-]{5,20}$/i;
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 const MAX_SCENE_FILES = 5;
+const BANGKOK_UTC_OFFSET_MS = 7 * 60 * 60 * 1000;
+function parseCalendarDateToEpoch(value) {
+    const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) {
+        return null;
+    }
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    if (!Number.isInteger(year) ||
+        !Number.isInteger(month) ||
+        !Number.isInteger(day) ||
+        year < 1900 ||
+        year > 2200) {
+        return null;
+    }
+    const epoch = Date.UTC(year, month - 1, day);
+    const parsedDate = new Date(epoch);
+    if (parsedDate.getUTCFullYear() !==
+        year ||
+        parsedDate.getUTCMonth() !==
+            month - 1 ||
+        parsedDate.getUTCDate() !== day) {
+        return null;
+    }
+    return epoch;
+}
+function getBangkokTodayEpoch(now = new Date()) {
+    const bangkokNow = new Date(now.getTime() +
+        BANGKOK_UTC_OFFSET_MS);
+    return Date.UTC(bangkokNow.getUTCFullYear(), bangkokNow.getUTCMonth(), bangkokNow.getUTCDate());
+}
 exports.applicantTypeSchema = zod_1.z.enum([
     "THAI",
     "FOREIGNER",
@@ -204,15 +236,15 @@ exports.createRequestSchema = zod_1.z
             message: "เวลาสิ้นสุดต้องอยู่หลังเวลาเริ่มต้น",
         });
     }
-    const eventDate = new Date(`${data.eventDate}T00:00:00`);
-    const today = new Date();
-    today.setHours(23, 59, 59, 999);
-    if (Number.isNaN(eventDate.getTime()) ||
-        eventDate > today) {
+    const eventDateEpoch = parseCalendarDateToEpoch(data.eventDate);
+    const bangkokTodayEpoch = getBangkokTodayEpoch();
+    if (eventDateEpoch === null ||
+        eventDateEpoch >
+            bangkokTodayEpoch) {
         context.addIssue({
             code: "custom",
             path: ["eventDate"],
-            message: "วันที่เกิดเหตุต้องไม่เป็นวันในอนาคต",
+            message: "วันที่เกิดเหตุต้องเป็นวันที่จริงและไม่อยู่ในอนาคต",
         });
     }
 });

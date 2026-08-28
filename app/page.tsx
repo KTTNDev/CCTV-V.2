@@ -1,26 +1,45 @@
 'use client';
+import React, {
+  useEffect,
+  useState,
+} from 'react';
 
-import React, { useState, useEffect } from 'react';
-import { 
-  signInAnonymously, onAuthStateChanged, User as FirebaseUser 
+import {
+  onAuthStateChanged,
+  signInAnonymously,
+  signOut,
 } from 'firebase/auth';
-import { auth } from '../lib/firebase';
+
+import type {
+  User as FirebaseUser,
+} from 'firebase/auth';
+
 import {
   ApiClientError,
   createRequest,
   finalizeRequest,
+  trackLegacyRequest,
   trackRequest,
 } from '../lib/api-client';
+
 import type {
   AccidentSubtype,
   AllowedContentType,
   ApplicantType,
   CreateRequestPayload,
+  CreateRequestResult,
   DeliveryMethod,
   EventType,
+  FinalizeRequestResult,
   ForeignerInvolvement,
+  LegacyTrackRequestPayload,
+  TrackRequestResult,
   UploadFileMetadata,
 } from '../lib/api-client';
+
+import {
+  auth,
+} from '../lib/firebase';
 import {
   uploadRequestFiles,
 } from '../lib/request-upload';
@@ -45,6 +64,15 @@ import Navbar from '../components/layout/Navbar';
 // ส่วนประกอบสำหรับเจ้าหน้าที่ (Admin/Staff)
 import AdminLoginView from '../components/views/AdminLoginView';
 import AdminView from '../components/views/AdminView';
+type SubmissionResult =
+  FinalizeRequestResult &
+  Pick<
+    CreateRequestResult,
+    'trackingToken'
+  >;
+
+
+
 const ALLOWED_CONTENT_TYPES =
   new Set<string>([
     'image/jpeg',
@@ -196,7 +224,10 @@ const App = () => {
         try {
           await signInAnonymously(auth);
         } catch (err) {
-          console.error('Auth init failed:', err);
+         console.warn(
+  "Anonymous authentication failed:",
+  err,
+);
         }
       } else {
         // มี user แต่ไม่ใช่แอดมิน (เช่น anonymous user เดิมที่ค้างจากรอบก่อน)
@@ -230,11 +261,25 @@ const [formData, setFormData] = useState<FormDataState>({
   const [files, setFiles] = useState<FileState>({
     idCard: null, report: null, scene: []
   });
+  
+const [
+  submissionResult,
+  setSubmissionResult,
+] = useState<SubmissionResult | null>(
+  null,
+);
 
-  const [submissionResult, setSubmissionResult] = useState<any>(null);
-  const [trackingIdInput, setTrackingIdInput] = useState('');
-  const [trackResult, setTrackResult] = useState<any>(null);
+const [
+  trackingIdInput,
+  setTrackingIdInput,
+] = useState('');
 
+const [
+  trackResult,
+  setTrackResult,
+] = useState<TrackRequestResult | null>(
+  null,
+);
   const handleRequestClick = () => setShowConsent(true);
   
   const handleConsentAgree = () => {
@@ -254,9 +299,26 @@ const [formData, setFormData] = useState<FormDataState>({
   /**
    * ✅ ฟังก์ชันออกจากระบบเจ้าหน้าที่
    */
-  const handleAdminLogout = () => {
-    setIsAdmin(false);
-    setView('home');
+  const handleAdminLogout =
+  async () => {
+    setError("");
+
+    try {
+      await signOut(auth);
+
+      setIsAdmin(false);
+      setView("home");
+      setUser(null);
+    } catch (logoutError) {
+      console.warn(
+        "Admin logout failed:",
+        logoutError,
+      );
+
+      setError(
+        "ไม่สามารถออกจากระบบได้ กรุณาลองใหม่อีกครั้ง",
+      );
+    }
   };
 
   const handleSubmitRequest = async (
@@ -457,53 +519,91 @@ const [formData, setFormData] = useState<FormDataState>({
     }
   };
 
-  const handleTrackRequest = async (
-    e: React.FormEvent,
-  ) => {
-    e.preventDefault();
+const handleTrackRequest = async (
+  event: React.FormEvent,
+): Promise<void> => {
+  event.preventDefault();
 
-    const trackingToken =
-      view === 'success' &&
-      submissionResult?.trackingToken
-        ? String(
-            submissionResult.trackingToken,
-          ).trim()
-        : trackingIdInput.trim();
+  const trackingToken =
+    view === 'success' &&
+    submissionResult?.trackingToken
+      ? submissionResult
+          .trackingToken
+          .trim()
+      : trackingIdInput.trim();
 
-    if (!trackingToken) {
-      setError(
-        'กรุณากรอกรหัสติดตามคำร้อง',
-      );
-      return;
-    }
+  if (!trackingToken) {
+    setError(
+      'กรุณากรอกรหัสติดตามคำร้อง',
+    );
+    return;
+  }
 
-    setLoading(true);
-    setError('');
-    setTrackResult(null);
+  setLoading(true);
+  setError('');
+  setTrackResult(null);
 
-    try {
-      const result =
-        await trackRequest(
-          trackingToken,
-        );
-
-      setTrackResult(result);
-    } catch (trackingError: unknown) {
-      console.error(
-        'Track request failed:',
-        trackingError,
+  try {
+    const result =
+      await trackRequest(
+        trackingToken,
       );
 
-      const message =
-        trackingError instanceof Error
+    setTrackResult(result);
+  } catch (trackingError: unknown) {
+    console.warn(
+      'Track request failed:',
+      trackingError,
+    );
+
+    const message =
+      trackingError instanceof
+      ApiClientError
+        ? trackingError.message
+        : trackingError instanceof Error
           ? trackingError.message
           : 'ไม่สามารถตรวจสอบสถานะคำร้องได้';
 
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
-  };
+    setError(message);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+const handleLegacyTrackRequest = async (
+  payload: LegacyTrackRequestPayload,
+): Promise<void> => {
+  setLoading(true);
+  setError('');
+  setTrackResult(null);
+
+  try {
+    const result =
+      await trackLegacyRequest(
+        payload,
+      );
+
+    setTrackResult(result);
+  } catch (trackingError: unknown) {
+    console.warn(
+      'Legacy track request failed:',
+      trackingError,
+    );
+
+    const message =
+      trackingError instanceof
+      ApiClientError
+        ? trackingError.message
+        : trackingError instanceof Error
+          ? trackingError.message
+          : 'ไม่สามารถตรวจสอบสถานะคำร้องได้';
+
+    setError(message);
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-800 flex flex-col selection:bg-blue-100">
       
@@ -551,13 +651,22 @@ const [formData, setFormData] = useState<FormDataState>({
         
         {/* หน้าติดตามสถานะ */}
         {view === 'track' && (
-          <TrackView 
-            trackingIdInput={trackingIdInput} 
-            setTrackingIdInput={setTrackingIdInput} 
-            handleTrackRequest={handleTrackRequest} 
-            trackResult={trackResult} 
-            loading={loading} error={error} setView={setView} 
-          />
+       <TrackView
+  trackingIdInput={trackingIdInput}
+  setTrackingIdInput={
+    setTrackingIdInput
+  }
+  handleTrackRequest={
+    handleTrackRequest
+  }
+  handleLegacyTrackRequest={
+    handleLegacyTrackRequest
+  }
+  trackResult={trackResult}
+  loading={loading}
+  error={error}
+  setView={setView}
+/>
         )}
 
         {/* ----------------------------------------------------

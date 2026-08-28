@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 
 import type {
+  LegacyTrackRequestPayload,
   TrackRequestResult,
 } from '../../lib/api-client';
 
@@ -41,6 +42,9 @@ interface TrackViewProps {
     e: React.FormEvent,
   ) => Promise<void>;
 
+handleLegacyTrackRequest: (
+  payload: LegacyTrackRequestPayload,
+) => Promise<void>;
   trackResult:
     | TrackRequestResult
     | null;
@@ -218,6 +222,7 @@ React.FC<TrackViewProps> = ({
   trackingIdInput,
   setTrackingIdInput,
   handleTrackRequest,
+  handleLegacyTrackRequest,
   trackResult,
   loading,
   error,
@@ -227,7 +232,40 @@ React.FC<TrackViewProps> = ({
     showTrackingToken,
     setShowTrackingToken,
   ] = useState(false);
+  const [
+    trackingMode,
+    setTrackingMode,
+  ] = useState<'secure' | 'legacy'>(
+    'secure',
+  );
 
+  const [
+    legacyTrackingId,
+    setLegacyTrackingId,
+  ] = useState('');
+
+  const [
+    legacyPhoneLast4,
+    setLegacyPhoneLast4,
+  ] = useState('');
+
+  const [
+    legacyEventDate,
+    setLegacyEventDate,
+  ] = useState('');
+
+  const handleLegacySubmit = async (
+    event:
+      React.FormEvent<HTMLFormElement>,
+  ): Promise<void> => {
+    event.preventDefault();
+
+    await handleLegacyTrackRequest({
+      trackingId: legacyTrackingId,
+      phoneLast4: legacyPhoneLast4,
+      eventDate: legacyEventDate,
+    });
+  };
   const resultSectionRef =
     useRef<HTMLDivElement>(null);
 
@@ -302,92 +340,236 @@ React.FC<TrackViewProps> = ({
           <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
             ติดตามสถานะคำร้อง
           </h1>
-
           <p className="mt-3 text-slate-500 max-w-xl mx-auto leading-relaxed">
-            วางรหัสติดตามแบบปลอดภัยฉบับเต็ม
-            ที่ได้รับหลังจากยื่นคำร้อง
+            เลือกวิธีติดตามให้ตรงกับรหัสที่คุณได้รับ
           </p>
 
-          <form
-            onSubmit={handleTrackRequest}
-            className="max-w-2xl mx-auto mt-8"
-          >
-            <label
-              htmlFor="tracking-token"
-              className="block text-left text-sm font-semibold text-slate-700 mb-2"
+          <div className="max-w-2xl mx-auto mt-8">
+            <div
+              className="grid grid-cols-2 gap-1 rounded-2xl bg-slate-100 p-1"
+              role="tablist"
+              aria-label="เลือกประเภทคำร้อง"
             >
-              รหัสติดตามแบบปลอดภัย
-            </label>
-
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1">
-                <input
-                  id="tracking-token"
-                  type={
-                    showTrackingToken
-                      ? 'text'
-                      : 'password'
-                  }
-                  value={trackingIdInput}
-                  onChange={(event) =>
-                    setTrackingIdInput(
-                      event.target.value,
-                    )
-                  }
-                  placeholder="RW-YYYYMMDD-XXXXXX.secret"
-                  autoComplete="off"
-                  autoCapitalize="none"
-                  spellCheck={false}
-                  className="w-full h-14 pl-5 pr-14 bg-slate-50 border-2 border-slate-200 rounded-2xl outline-none focus:bg-white focus:border-teal-500 focus:ring-4 focus:ring-teal-100 font-mono text-sm transition-all"
-                />
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    setShowTrackingToken(
-                      (current) =>
-                        !current,
-                    )
-                  }
-                  className="absolute inset-y-0 right-0 w-14 flex items-center justify-center text-slate-400 hover:text-slate-700"
-                  aria-label={
-                    showTrackingToken
-                      ? 'ซ่อนรหัสติดตาม'
-                      : 'แสดงรหัสติดตาม'
-                  }
-                >
-                  {showTrackingToken ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
-                </button>
-              </div>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={
+                  trackingMode === 'secure'
+                }
+                onClick={() =>
+                  setTrackingMode('secure')
+                }
+                className={`min-h-12 rounded-xl px-4 text-sm font-semibold transition-all ${
+                  trackingMode === 'secure'
+                    ? 'bg-white text-slate-950 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                คำร้องใหม่
+              </button>
 
               <button
-                type="submit"
-                disabled={
-                  loading ||
-                  !trackingIdInput.trim()
+                type="button"
+                role="tab"
+                aria-selected={
+                  trackingMode === 'legacy'
                 }
-                className="h-14 px-8 rounded-2xl bg-gradient-to-r from-teal-600 to-blue-900 text-white font-semibold shadow-lg shadow-blue-200 hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                onClick={() =>
+                  setTrackingMode('legacy')
+                }
+                className={`min-h-12 rounded-xl px-4 text-sm font-semibold transition-all ${
+                  trackingMode === 'legacy'
+                    ? 'bg-white text-slate-950 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
               >
-                {loading
-                  ? 'กำลังตรวจสอบ...'
-                  : 'ตรวจสอบสถานะ'}
+                คำร้องเดิม
               </button>
             </div>
-          </form>
 
-          <div className="mt-5 flex items-start justify-center gap-2 text-xs text-slate-400">
-            <ShieldCheck className="w-4 h-4 shrink-0" />
-            <p>
-              รหัสเป็นข้อมูลลับ
-              ระบบจะไม่แสดงข้อมูลบัตรประชาชน
-              เบอร์โทร อีเมล หรือไฟล์แนบ
-            </p>
+            {trackingMode === 'secure' ? (
+              <form
+                onSubmit={handleTrackRequest}
+                className="mt-6 text-left"
+              >
+                <label
+                  htmlFor="tracking-token"
+                  className="block text-sm font-semibold text-slate-700 mb-2"
+                >
+                  รหัสติดตามแบบปลอดภัย
+                </label>
+
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="relative flex-1">
+                    <input
+                      id="tracking-token"
+                      type={
+                        showTrackingToken
+                          ? 'text'
+                          : 'password'
+                      }
+                      value={trackingIdInput}
+                      onChange={(event) =>
+                        setTrackingIdInput(
+                          event.target.value,
+                        )
+                      }
+                      placeholder="RW-YYYYMMDD-XXXXXX.secret"
+                      autoComplete="off"
+                      autoCapitalize="none"
+                      spellCheck={false}
+                      required
+                      className="w-full h-14 pl-5 pr-14 bg-slate-50 border-2 border-slate-200 rounded-2xl outline-none focus:bg-white focus:border-teal-500 focus:ring-4 focus:ring-teal-100 font-mono text-sm transition-all"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowTrackingToken(
+                          (current) =>
+                            !current,
+                        )
+                      }
+                      className="absolute inset-y-0 right-0 w-14 flex items-center justify-center text-slate-400 hover:text-slate-700"
+                      aria-label={
+                        showTrackingToken
+                          ? 'ซ่อนรหัสติดตาม'
+                          : 'แสดงรหัสติดตาม'
+                      }
+                    >
+                      {showTrackingToken ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={
+                      loading ||
+                      !trackingIdInput.trim()
+                    }
+                    className="h-14 px-8 rounded-2xl bg-gradient-to-r from-teal-600 to-blue-900 text-white font-semibold shadow-lg shadow-blue-200 hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    {loading
+                      ? 'กำลังตรวจสอบ...'
+                      : 'ตรวจสอบสถานะ'}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <form
+                onSubmit={handleLegacySubmit}
+                className="mt-6 text-left"
+              >
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <label
+                      htmlFor="legacy-tracking-id"
+                      className="block text-sm font-semibold text-slate-700 mb-2"
+                    >
+                      หมายเลขคำร้องเดิม
+                    </label>
+
+                    <input
+                      id="legacy-tracking-id"
+                      type="text"
+                      value={legacyTrackingId}
+                      onChange={(event) =>
+                        setLegacyTrackingId(
+                          event.target.value
+                            .toUpperCase(),
+                        )
+                      }
+                      placeholder="REQ-XXXXXXXX"
+                      autoComplete="off"
+                      spellCheck={false}
+                      required
+                      className="w-full h-14 px-5 bg-slate-50 border-2 border-slate-200 rounded-2xl outline-none focus:bg-white focus:border-teal-500 focus:ring-4 focus:ring-teal-100 font-mono text-sm transition-all"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="legacy-phone"
+                      className="block text-sm font-semibold text-slate-700 mb-2"
+                    >
+                      เบอร์โทรศัพท์ 4 ตัวท้าย
+                    </label>
+
+                    <input
+                      id="legacy-phone"
+                      type="text"
+                      inputMode="numeric"
+                      value={legacyPhoneLast4}
+                      onChange={(event) =>
+                        setLegacyPhoneLast4(
+                          event.target.value
+                            .replace(/\D/g, '')
+                            .slice(0, 4),
+                        )
+                      }
+                      placeholder="1234"
+                      autoComplete="off"
+                      maxLength={4}
+                      pattern="[0-9]{4}"
+                      required
+                      className="w-full h-14 px-5 bg-slate-50 border-2 border-slate-200 rounded-2xl outline-none focus:bg-white focus:border-teal-500 focus:ring-4 focus:ring-teal-100 font-mono text-sm transition-all"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="legacy-event-date"
+                      className="block text-sm font-semibold text-slate-700 mb-2"
+                    >
+                      วันที่เกิดเหตุ
+                    </label>
+
+                    <input
+                      id="legacy-event-date"
+                      type="date"
+                      value={legacyEventDate}
+                      onChange={(event) =>
+                        setLegacyEventDate(
+                          event.target.value,
+                        )
+                      }
+                      required
+                      className="w-full h-14 px-5 bg-slate-50 border-2 border-slate-200 rounded-2xl outline-none focus:bg-white focus:border-teal-500 focus:ring-4 focus:ring-teal-100 text-sm transition-all"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                 disabled={
+  loading ||
+  !legacyTrackingId.trim() ||
+  legacyPhoneLast4.length !== 4 ||
+  !legacyEventDate
+}
+                  className="mt-4 w-full h-14 rounded-2xl bg-gradient-to-r from-teal-600 to-blue-900 text-white font-semibold shadow-lg shadow-blue-200 hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  {loading
+                    ? 'กำลังตรวจสอบ...'
+                    : 'ตรวจสอบคำร้องเดิม'}
+                </button>
+              </form>
+            )}
+
+            <div className="mt-5 flex items-start justify-center gap-2 text-xs text-slate-400">
+              <ShieldCheck className="w-4 h-4 shrink-0" />
+
+              <p>
+                ระบบจะแสดงเฉพาะข้อมูลสถานะ
+                โดยไม่แสดงเลขบัตรประชาชน
+                เบอร์โทรศัพท์ อีเมล หรือไฟล์แนบ
+              </p>
+            </div>
           </div>
-
           {error && (
             <div
               role="alert"

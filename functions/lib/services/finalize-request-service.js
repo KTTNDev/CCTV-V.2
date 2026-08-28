@@ -1,11 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.finalizeDraftRequest = finalizeDraftRequest;
+const node_crypto_1 = require("node:crypto");
 const firestore_1 = require("firebase-admin/firestore");
 const firebase_admin_1 = require("../lib/firebase-admin");
 const http_error_1 = require("../lib/http-error");
 const REQUEST_COLLECTION = "cctv_requests";
 const TRACKING_INDEX_COLLECTION = "tracking_index";
+const NOTIFICATION_OUTBOX_COLLECTION = "notification_outbox";
 function isRecord(value) {
     return (typeof value === "object" &&
         value !== null &&
@@ -70,6 +72,19 @@ function getTimestamp(value) {
     return value instanceof firestore_1.Timestamp
         ? value
         : null;
+}
+function getRequiredRequestString(requestData, fieldName, maximumLength) {
+    const value = requestData[fieldName];
+    if (typeof value !== "string") {
+        throw new Error(`Request field ${fieldName} is missing`);
+    }
+    const normalized = value
+        .trim()
+        .slice(0, maximumLength);
+    if (!normalized) {
+        throw new Error(`Request field ${fieldName} is empty`);
+    }
+    return normalized;
 }
 function assertRequestOwner(requestData, user) {
     if (requestData.ownerUid !== user.uid) {
@@ -209,6 +224,10 @@ async function finalizeDraftRequest(input, user) {
     const requestRef = firebase_admin_1.adminDb
         .collection(REQUEST_COLLECTION)
         .doc(input.requestId);
+    const notificationReference = firebase_admin_1.adminDb
+        .collection(NOTIFICATION_OUTBOX_COLLECTION)
+        .doc(input.requestId);
+    const notificationRetryKey = (0, node_crypto_1.randomUUID)();
     const initialSnapshot = await requestRef.get();
     if (!initialSnapshot.exists) {
         throw new http_error_1.HttpError({
@@ -277,6 +296,22 @@ async function finalizeDraftRequest(input, user) {
             updatedAt: submittedAt,
         }, {
             merge: true,
+        });
+        transaction.create(notificationReference, {
+            schemaVersion: 1,
+            type: "new_request",
+            status: "pending",
+            attempts: 0,
+            requestId: input.requestId,
+            trackingId,
+            eventType: getRequiredRequestString(currentData, "eventType", 50),
+            eventDate: getRequiredRequestString(currentData, "eventDate", 20),
+            eventTimeStart: getRequiredRequestString(currentData, "eventTimeStart", 10),
+            eventTimeEnd: getRequiredRequestString(currentData, "eventTimeEnd", 10),
+            location: getRequiredRequestString(currentData, "location", 300),
+            retryKey: notificationRetryKey,
+            createdAt: submittedAt,
+            updatedAt: submittedAt,
         });
         return {
             requestId: input.requestId,

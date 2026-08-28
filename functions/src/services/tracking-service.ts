@@ -1,4 +1,7 @@
 import {
+  timingSafeEqual,
+} from "node:crypto";
+import {
   Timestamp,
 } from "firebase-admin/firestore";
 
@@ -10,7 +13,12 @@ import {
   parseTrackingToken,
   verifyTrackingSecret,
 } from "../lib/tracking";
+import {
+  isLegacyTrackRequestInput,
+} from "../schemas/track-request";
 import type {
+  LegacyTrackRequestInput,
+  SecureTrackRequestInput,
   TrackRequestInput,
 } from "../schemas/track-request";
 
@@ -65,21 +73,33 @@ function getOptionalString(
     return null;
   }
 
-  const trimmedValue = value
+  const normalized = value
     .trim()
     .slice(0, maximumLength);
 
-  return trimmedValue || null;
+  return normalized || null;
 }
 
 function timestampToISOString(
   value: unknown,
 ): string | null {
-  if (!(value instanceof Timestamp)) {
-    return null;
+  if (
+    value instanceof Timestamp
+  ) {
+    return value
+      .toDate()
+      .toISOString();
   }
 
-  return value.toDate().toISOString();
+  if (value instanceof Date) {
+    return Number.isNaN(
+      value.getTime(),
+    )
+      ? null
+      : value.toISOString();
+  }
+
+  return null;
 }
 
 function createPublicStatusHistory(
@@ -116,6 +136,7 @@ function createPublicStatusHistory(
     result.push({
       status,
       note,
+
       timestamp:
         timestampToISOString(
           item.timestamp,
@@ -131,12 +152,222 @@ function throwTrackingNotFound(): never {
     status: 404,
     code: "NOT_FOUND",
     message:
-      "ไม่พบคำร้อง หรือรหัสติดตามไม่ถูกต้อง",
+      "ไม่พบคำร้อง หรือข้อมูลยืนยันไม่ถูกต้อง",
   });
 }
 
-export async function trackRequestStatus(
-  input: TrackRequestInput,
+function createTrackingResult(
+  trackingId: string,
+  requestData:
+    Record<string, unknown>,
+): TrackRequestResult {
+  const status =
+    getOptionalString(
+      requestData.status,
+      50,
+    );
+
+  if (
+    !status ||
+    status === "draft"
+  ) {
+    throwTrackingNotFound();
+  }
+
+  return {
+    trackingId,
+    status,
+
+    eventType:
+      getOptionalString(
+        requestData.eventType,
+        50,
+      ),
+
+    eventDate:
+      getOptionalString(
+        requestData.eventDate,
+        20,
+      ),
+
+    eventTimeStart:
+      getOptionalString(
+        requestData.eventTimeStart,
+        10,
+      ),
+
+    eventTimeEnd:
+      getOptionalString(
+        requestData.eventTimeEnd,
+        10,
+      ),
+
+    location:
+      getOptionalString(
+        requestData.location,
+        300,
+      ),
+
+    deliveryMethod:
+      getOptionalString(
+        requestData.deliveryMethod,
+        30,
+      ),
+
+    adminNote:
+      getOptionalString(
+        requestData.adminNote,
+        2000,
+      ),
+
+    createdAt:
+      timestampToISOString(
+        requestData.createdAt,
+      ),
+
+    submittedAt:
+      timestampToISOString(
+        requestData.submittedAt,
+      ),
+
+    updatedAt:
+      timestampToISOString(
+        requestData.updatedAt,
+      ),
+
+    statusHistory:
+      createPublicStatusHistory(
+        requestData.statusHistory,
+      ),
+  };
+}
+
+function constantTimeEqual(
+  first: string,
+  second: string,
+): boolean {
+  const firstBuffer =
+    Buffer.from(
+      first,
+      "utf8",
+    );
+
+  const secondBuffer =
+    Buffer.from(
+      second,
+      "utf8",
+    );
+
+  if (
+    firstBuffer.length !==
+    secondBuffer.length
+  ) {
+    return false;
+  }
+
+  return timingSafeEqual(
+    firstBuffer,
+    secondBuffer,
+  );
+}
+
+function getPhoneLastFour(
+  value: unknown,
+): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const digits =
+    value.replace(/\D/g, "");
+
+  if (digits.length < 4) {
+    return null;
+  }
+
+  return digits.slice(-4);
+}
+
+function normalizeStoredDate(
+  value: unknown,
+): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalized =
+    value.trim();
+
+  const yearFirstMatch =
+    normalized.match(
+      /^(\d{4})[/-](\d{1,2})[/-](\d{1,2})$/,
+    );
+
+  if (yearFirstMatch) {
+    let year =
+      Number(
+        yearFirstMatch[1],
+      );
+
+    const month =
+      Number(
+        yearFirstMatch[2],
+      );
+
+    const day =
+      Number(
+        yearFirstMatch[3],
+      );
+
+    if (year > 2400) {
+      year -= 543;
+    }
+
+    return (
+      `${String(year).padStart(4, "0")}-` +
+      `${String(month).padStart(2, "0")}-` +
+      String(day).padStart(2, "0")
+    );
+  }
+
+  const dayFirstMatch =
+    normalized.match(
+      /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/,
+    );
+
+  if (dayFirstMatch) {
+    const day =
+      Number(
+        dayFirstMatch[1],
+      );
+
+    const month =
+      Number(
+        dayFirstMatch[2],
+      );
+
+    let year =
+      Number(
+        dayFirstMatch[3],
+      );
+
+    if (year > 2400) {
+      year -= 543;
+    }
+
+    return (
+      `${String(year).padStart(4, "0")}-` +
+      `${String(month).padStart(2, "0")}-` +
+      String(day).padStart(2, "0")
+    );
+  }
+
+  return null;
+}
+
+async function trackSecureRequest(
+  input:
+    SecureTrackRequestInput,
 ): Promise<TrackRequestResult> {
   const parsedToken =
     parseTrackingToken(
@@ -148,10 +379,14 @@ export async function trackRequestStatus(
       .collection(
         TRACKING_INDEX_COLLECTION,
       )
-      .doc(parsedToken.trackingId)
+      .doc(
+        parsedToken.trackingId,
+      )
       .get();
 
-  if (!trackingIndexSnapshot.exists) {
+  if (
+    !trackingIndexSnapshot.exists
+  ) {
     throwTrackingNotFound();
   }
 
@@ -161,7 +396,8 @@ export async function trackRequestStatus(
     );
 
   if (
-    typeof requestId !== "string" ||
+    typeof requestId !==
+      "string" ||
     !/^[A-Za-z0-9]{20}$/.test(
       requestId,
     )
@@ -171,11 +407,15 @@ export async function trackRequestStatus(
 
   const requestSnapshot =
     await adminDb
-      .collection(REQUEST_COLLECTION)
+      .collection(
+        REQUEST_COLLECTION,
+      )
       .doc(requestId)
       .get();
 
-  if (!requestSnapshot.exists) {
+  if (
+    !requestSnapshot.exists
+  ) {
     throwTrackingNotFound();
   }
 
@@ -207,85 +447,124 @@ export async function trackRequestStatus(
     throwTrackingNotFound();
   }
 
-  const status =
-    getOptionalString(
-      requestData.status,
-      50,
-    );
+  return createTrackingResult(
+    parsedToken.trackingId,
+    requestData,
+  );
+}
 
+async function trackLegacyRequest(
+  input:
+    LegacyTrackRequestInput,
+): Promise<TrackRequestResult> {
+  const requestSnapshot =
+    await adminDb
+      .collection(
+        REQUEST_COLLECTION,
+      )
+      .where(
+        "trackingId",
+        "==",
+        input.trackingId,
+      )
+      .limit(2)
+      .get();
+
+  /**
+   * ไม่คืนข้อมูลหากไม่พบ
+   * หรือพบ Tracking ID ซ้ำ
+   */
   if (
-    !status ||
-    status === "draft"
+    requestSnapshot.size !== 1
   ) {
     throwTrackingNotFound();
   }
 
-  return {
-    trackingId:
-      parsedToken.trackingId,
+  const document =
+    requestSnapshot.docs[0];
 
-    status,
+  const requestData =
+    document.data();
 
-    eventType:
-      getOptionalString(
-        requestData.eventType,
-        50,
-      ),
+  /**
+   * ห้ามใช้ Legacy Verification
+   * กับคำร้อง Secure V2 โดยเด็ดขาด
+   */
+  const schemaVersion =
+    requestData.schemaVersion;
 
-    eventDate:
-      getOptionalString(
-        requestData.eventDate,
-        10,
-      ),
+  const hasSecureSecret =
+    typeof requestData
+      .trackingSecretHash ===
+    "string";
 
-    eventTimeStart:
-      getOptionalString(
-        requestData.eventTimeStart,
-        5,
-      ),
+  if (
+    (
+      typeof schemaVersion ===
+        "number" &&
+      schemaVersion >= 2
+    ) ||
+    hasSecureSecret
+  ) {
+    throwTrackingNotFound();
+  }
 
-    eventTimeEnd:
-      getOptionalString(
-        requestData.eventTimeEnd,
-        5,
-      ),
+  const storedPhoneLastFour =
+    getPhoneLastFour(
+      requestData.phone,
+    );
 
-    location:
-      getOptionalString(
-        requestData.location,
-        300,
-      ),
+  const storedEventDate =
+    normalizeStoredDate(
+      requestData.eventDate,
+    );
 
-    deliveryMethod:
-      getOptionalString(
-        requestData.deliveryMethod,
-        20,
-      ),
+  if (
+    !storedPhoneLastFour ||
+    !storedEventDate
+  ) {
+    throwTrackingNotFound();
+  }
 
-    adminNote:
-      getOptionalString(
-        requestData.adminNote,
-        2000,
-      ),
+  const phoneMatches =
+    constantTimeEqual(
+      storedPhoneLastFour,
+      input.phoneLast4,
+    );
 
-    createdAt:
-      timestampToISOString(
-        requestData.createdAt,
-      ),
+  const dateMatches =
+    constantTimeEqual(
+      storedEventDate,
+      input.eventDate,
+    );
 
-    submittedAt:
-      timestampToISOString(
-        requestData.submittedAt,
-      ),
+  if (
+    !phoneMatches ||
+    !dateMatches
+  ) {
+    throwTrackingNotFound();
+  }
 
-    updatedAt:
-      timestampToISOString(
-        requestData.updatedAt,
-      ),
+  return createTrackingResult(
+    input.trackingId,
+    requestData,
+  );
+}
 
-    statusHistory:
-      createPublicStatusHistory(
-        requestData.statusHistory,
-      ),
-  };
+export async function trackRequestStatus(
+  input: TrackRequestInput,
+): Promise<TrackRequestResult> {
+  if (
+    isLegacyTrackRequestInput(
+      input,
+    )
+  ) {
+    return trackLegacyRequest(
+      input,
+    );
+  }
+
+  return trackSecureRequest(
+    input,
+  );
 }
