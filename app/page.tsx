@@ -197,6 +197,14 @@ function getSubmissionErrorMessage(
 const App = () => {
   // สถานะการควบคุมหน้าจอ: home, request, track, success, admin-login, admin-dashboard
   const [view, setView] = useState('home');
+
+  useEffect(() => {
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: 'auto',
+    });
+  }, [view]);
   const [showConsent, setShowConsent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

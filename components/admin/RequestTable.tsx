@@ -143,6 +143,8 @@ const AttachmentPreview:
 
     return (
       <div className="h-11 w-11 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        {/* Evidence URLs can come from multiple legacy storage providers. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={getMiniThumbnailLink(
             url,
@@ -150,6 +152,9 @@ const AttachmentPreview:
           alt=""
           className="h-full w-full object-cover"
           loading="lazy"
+          decoding="async"
+          width={44}
+          height={44}
           onError={() =>
             setPreviewFailed(true)
           }

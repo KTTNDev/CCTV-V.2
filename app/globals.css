@@ -19,7 +19,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-noto-sans-thai), var(--font-inter), sans-serif;
+  --font-sans: "Noto Sans Thai", "Leelawadee UI", Tahoma, Arial, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -32,7 +32,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-noto-sans-thai), var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: "Noto Sans Thai", "Leelawadee UI", Tahoma, Arial, sans-serif;
 }
 
 /* ---------------------------------------------------------------
@@ -64,4 +64,3 @@ body {
 .btn-primary:hover {
   filter: brightness(0.93);
 }
-

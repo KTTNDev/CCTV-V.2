@@ -154,8 +154,9 @@ export const AuditLogModal:
         [],
       );
 
-    const [loading, setLoading] =
-      useState(false);
+const [loading, setLoading] =
+  useState(true);
+
 
     const [error, setError] =
       useState("");
@@ -165,9 +166,7 @@ export const AuditLogModal:
         return;
       }
 
-      setLoading(true);
-      setError("");
-
+   
       const auditQuery = query(
         collection(
           db,
@@ -193,8 +192,9 @@ export const AuditLogModal:
                   ),
               );
 
-            setLogs(nextLogs);
-            setLoading(false);
+           setLogs(nextLogs);
+setError("");
+setLoading(false);
           },
           (snapshotError) => {
             console.warn(

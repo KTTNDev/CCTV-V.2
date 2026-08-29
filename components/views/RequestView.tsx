@@ -149,7 +149,7 @@ const RequestView: React.FC<RequestViewProps> = ({
           <form onSubmit={handleLocalSubmit} className="p-8 md:p-16 space-y-16">
             {/* 🚩 แสดง Error จาก Firebase (ถ้ามี) */}
             {error && (
-              <div className="p-6 bg-red-50 text-red-900 rounded-3xl flex items-start gap-4 border border-red-100 animate-in zoom-in-95 shadow-sm">
+              <div role="alert" className="p-6 bg-red-50 text-red-900 rounded-3xl flex items-start gap-4 border border-red-100 animate-in zoom-in-95 shadow-sm">
                 <AlertCircle className="w-6 h-6 flex-shrink-0 mt-0.5 text-red-600" />
                 <div><p className="font-bold text-lg mb-1">พบข้อผิดพลาดจากระบบ</p><p className="font-medium text-sm opacity-90">{error}</p></div>
               </div>
@@ -160,41 +160,41 @@ const RequestView: React.FC<RequestViewProps> = ({
   <div className="grid md:grid-cols-2 gap-x-8 gap-y-6">
     {/* ชื่อ-นามสกุล */}
     <div className="space-y-2">
-      <label className="block text-[13px] font-semibold text-slate-600 uppercase tracking-wider ml-1">ชื่อ-นามสกุลจริง <span className="text-red-500">*</span></label>
+      <label htmlFor="applicant-name" className="block text-[13px] font-semibold text-slate-600 uppercase tracking-wider ml-1">ชื่อ-นามสกุลจริง <span className="text-red-500">*</span></label>
       <div className="relative group">
         <User className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-        <input required type="text" className="w-full pl-14 pr-6 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-50 outline-none" placeholder="ระบุชื่อและนามสกุล" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+        <input id="applicant-name" name="applicantName" autoComplete="name" required type="text" className="w-full pl-14 pr-6 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-50 outline-none" placeholder="ระบุชื่อและนามสกุล" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
       </div>
     </div>
 
     {/* ✅ เพิ่ม: ตัวเลือกประเภทบุคคล */}
     <div className="space-y-2">
-      <label className="block text-[13px] font-semibold text-slate-600 uppercase tracking-wider ml-1">ประเภทบุคคล <span className="text-red-500">*</span></label>
-      <div className="flex gap-4 p-1 bg-slate-100 rounded-2xl">
-        <button type="button" onClick={() => setFormData({...formData, isForeigner: 'THAI', passportNumber: ''})} className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all ${formData.isForeigner === 'THAI' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500'}`}>คนไทย</button>
-        <button type="button" onClick={() => setFormData({...formData, isForeigner: 'FOREIGNER', nationalId: ''})} className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all ${formData.isForeigner === 'FOREIGNER' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500'}`}>ชาวต่างชาติ</button>
+      <p id="applicant-type-label" className="block text-[13px] font-semibold text-slate-600 uppercase tracking-wider ml-1">ประเภทบุคคล <span className="text-red-500">*</span></p>
+      <div role="group" aria-labelledby="applicant-type-label" className="flex gap-4 p-1 bg-slate-100 rounded-2xl">
+        <button type="button" aria-pressed={formData.isForeigner === 'THAI'} onClick={() => setFormData({...formData, isForeigner: 'THAI', passportNumber: ''})} className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all ${formData.isForeigner === 'THAI' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500'}`}>คนไทย</button>
+        <button type="button" aria-pressed={formData.isForeigner === 'FOREIGNER'} onClick={() => setFormData({...formData, isForeigner: 'FOREIGNER', nationalId: ''})} className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all ${formData.isForeigner === 'FOREIGNER' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500'}`}>ชาวต่างชาติ</button>
       </div>
     </div>
 
     {/* ✅ สลับช่องกรอกตามประเภทบุคคล */}
     {formData.isForeigner === 'THAI' ? (
       <div className="space-y-2 animate-in fade-in slide-in-from-left-2">
-        <label className="block text-[13px] font-semibold text-slate-600 uppercase tracking-wider ml-1">เลขประจำตัวประชาชน <span className="text-red-500">*</span></label>
-        <input required type="text" maxLength={13} placeholder="X-XXXX-XXXXX-XX-X" className="w-full px-6 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-50 outline-none font-mono" value={formData.nationalId} onChange={e => setFormData({...formData, nationalId: e.target.value.replace(/[^0-9]/g, '')})} />
+        <label htmlFor="national-id" className="block text-[13px] font-semibold text-slate-600 uppercase tracking-wider ml-1">เลขประจำตัวประชาชน <span className="text-red-500">*</span></label>
+        <input id="national-id" name="nationalId" inputMode="numeric" autoComplete="off" required type="text" maxLength={13} placeholder="X-XXXX-XXXXX-XX-X" className="w-full px-6 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-50 outline-none font-mono" value={formData.nationalId} onChange={e => setFormData({...formData, nationalId: e.target.value.replace(/[^0-9]/g, '')})} />
       </div>
     ) : (
       <div className="space-y-2 animate-in fade-in slide-in-from-right-2">
-        <label className="block text-[13px] font-semibold text-slate-600 uppercase tracking-wider ml-1">Passport Number <span className="text-red-500">*</span></label>
-        <input required type="text" placeholder="ระบุเลขที่พาสปอร์ต" className="w-full px-6 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-50 outline-none uppercase font-mono" value={formData.passportNumber} onChange={e => setFormData({...formData, passportNumber: e.target.value.toUpperCase()})} />
+        <label htmlFor="passport-number" className="block text-[13px] font-semibold text-slate-600 uppercase tracking-wider ml-1">Passport Number <span className="text-red-500">*</span></label>
+        <input id="passport-number" name="passportNumber" autoComplete="off" required type="text" placeholder="ระบุเลขที่พาสปอร์ต" className="w-full px-6 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-50 outline-none uppercase font-mono" value={formData.passportNumber} onChange={e => setFormData({...formData, passportNumber: e.target.value.toUpperCase()})} />
       </div>
     )}
 
     {/* เบอร์โทรศัพท์ (คงเดิม) */}
     <div className="space-y-2">
-      <label className="block text-[13px] font-semibold text-slate-600 uppercase tracking-wider ml-1">เบอร์โทรศัพท์ <span className="text-red-500">*</span></label>
+      <label htmlFor="applicant-phone" className="block text-[13px] font-semibold text-slate-600 uppercase tracking-wider ml-1">เบอร์โทรศัพท์ <span className="text-red-500">*</span></label>
       <div className="relative group">
         <Phone className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-        <input required type="tel" className="w-full pl-14 pr-6 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-50 outline-none" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+        <input id="applicant-phone" name="phone" autoComplete="tel" inputMode="tel" required type="tel" className="w-full pl-14 pr-6 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-50 outline-none" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
       </div>
     </div>
   </div>
@@ -203,15 +203,15 @@ const RequestView: React.FC<RequestViewProps> = ({
             <FormSection title="2. รายละเอียดเหตุการณ์">
               <div className="grid md:grid-cols-2 gap-x-8 gap-y-6 mb-8">
                 <div className="space-y-2">
-                  <label className="block text-[13px] font-semibold text-slate-600 uppercase tracking-wider ml-1">วันที่เกิดเหตุ <span className="text-red-500">*</span></label>
-                  <div className="relative group"><Calendar className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" /><input required type="date" className="w-full pl-14 pr-6 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-50 outline-none" value={formData.eventDate} onChange={e => setFormData({...formData, eventDate: e.target.value})} /></div>
+                  <label htmlFor="event-date" className="block text-[13px] font-semibold text-slate-600 uppercase tracking-wider ml-1">วันที่เกิดเหตุ <span className="text-red-500">*</span></label>
+                  <div className="relative group"><Calendar className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" /><input id="event-date" name="eventDate" required type="date" className="w-full pl-14 pr-6 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-50 outline-none" value={formData.eventDate} onChange={e => setFormData({...formData, eventDate: e.target.value})} /></div>
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-[13px] font-semibold text-slate-600 uppercase tracking-wider ml-1">ช่วงเวลาที่เกิดเหตุ <span className="text-red-500">*</span></label>
+                  <p id="event-time-label" className="block text-[13px] font-semibold text-slate-600 uppercase tracking-wider ml-1">ช่วงเวลาที่เกิดเหตุ <span className="text-red-500">*</span></p>
                   <div className="flex items-center gap-4">
-                    <input required type="time" className="w-full px-6 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-50 outline-none text-center" value={formData.eventTimeStart} onChange={e => setFormData({...formData, eventTimeStart: e.target.value})} />
+                    <input aria-label="เวลาเริ่มต้นของเหตุการณ์" name="eventTimeStart" required type="time" className="w-full px-6 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-50 outline-none text-center" value={formData.eventTimeStart} onChange={e => setFormData({...formData, eventTimeStart: e.target.value})} />
                     <span className="font-medium text-slate-400 text-sm">ถึง</span>
-                    <input required type="time" className="w-full px-6 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-50 outline-none text-center" value={formData.eventTimeEnd} onChange={e => setFormData({...formData, eventTimeEnd: e.target.value})} />
+                    <input aria-label="เวลาสิ้นสุดของเหตุการณ์" name="eventTimeEnd" required type="time" className="w-full px-6 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-50 outline-none text-center" value={formData.eventTimeEnd} onChange={e => setFormData({...formData, eventTimeEnd: e.target.value})} />
                   </div>
                 </div>
               </div>
@@ -229,13 +229,13 @@ const RequestView: React.FC<RequestViewProps> = ({
 
               <div className="grid md:grid-cols-2 gap-x-8 gap-y-6">
                 <div className="space-y-2">
-                  <label className="block text-[13px] font-semibold text-slate-600 uppercase tracking-wider ml-1">สถานที่ / จุดสังเกตโดยรอบ <span className="text-red-500">*</span></label>
-                  <div className="relative group"><MapPin className="absolute left-5 top-5 text-slate-400 w-5 h-5" /><input required type="text" className="w-full pl-14 pr-6 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-50 outline-none" placeholder="หน้าเสาไฟฟ้า, ฝั่งตรงข้าม..." value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} /></div>
+                   <label htmlFor="event-location" className="block text-[13px] font-semibold text-slate-600 uppercase tracking-wider ml-1">สถานที่ / จุดสังเกตโดยรอบ <span className="text-red-500">*</span></label>
+                   <div className="relative group"><MapPin className="absolute left-5 top-5 text-slate-400 w-5 h-5" /><input id="event-location" name="eventLocation" required type="text" className="w-full pl-14 pr-6 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-50 outline-none" placeholder="หน้าเสาไฟฟ้า, ฝั่งตรงข้าม..." value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} /></div>
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-[13px] font-semibold text-slate-600 uppercase tracking-wider ml-1">ประเภทเหตุการณ์ <span className="text-red-500">*</span></label>
+                   <label htmlFor="event-type" className="block text-[13px] font-semibold text-slate-600 uppercase tracking-wider ml-1">ประเภทเหตุการณ์ <span className="text-red-500">*</span></label>
                   <div className="relative group">
-                    <select required className="w-full px-8 py-4 bg-white border border-slate-200 rounded-2xl appearance-none cursor-pointer" value={formData.eventType} onChange={e => setFormData({...formData, eventType: e.target.value, accidentSubtype: ''})}>
+                     <select id="event-type" name="eventType" required className="w-full px-8 py-4 bg-white border border-slate-200 rounded-2xl appearance-none cursor-pointer" value={formData.eventType} onChange={e => setFormData({...formData, eventType: e.target.value, accidentSubtype: ''})}>
                       <option value="">-- เลือกประเภทเหตุการณ์ --</option>
                       <option value="ACCIDENT">🚗 อุบัติเหตุจราจร</option>
                       <option value="THEFT">🔓 การโจรกรรม / ลักทรัพย์</option>
@@ -252,9 +252,9 @@ const RequestView: React.FC<RequestViewProps> = ({
                 <div className="mt-8 space-y-8 animate-in fade-in slide-in-from-top-2">
                   {/* ลักษณะการเกิดอุบัติเหตุ (เดิม) */}
                   <div className="space-y-2">
-                    <label className="block text-[13px] font-bold text-blue-700 uppercase tracking-wider ml-1 mb-2">ลักษณะการเกิดอุบัติเหตุ <span className="text-red-500">*</span></label>
+                     <label htmlFor="accident-subtype" className="block text-[13px] font-bold text-blue-700 uppercase tracking-wider ml-1 mb-2">ลักษณะการเกิดอุบัติเหตุ <span className="text-red-500">*</span></label>
                     <div className="relative group">
-                      <select required className="w-full px-8 py-4 bg-blue-50/50 border-2 border-blue-200 rounded-2xl appearance-none" value={formData.accidentSubtype || ''} onChange={e => setFormData({...formData, accidentSubtype: e.target.value})}>
+                       <select id="accident-subtype" name="accidentSubtype" required className="w-full px-8 py-4 bg-blue-50/50 border-2 border-blue-200 rounded-2xl appearance-none" value={formData.accidentSubtype || ''} onChange={e => setFormData({...formData, accidentSubtype: e.target.value})}>
                         <option value="">-- เลือกลักษณะการเกิดเหตุ --</option>
                         <option value="MC_VS_MC">1. รถจักรยานยนต์ ชน รถจักรยานยนต์</option>
                         <option value="MC_VS_CAR">2. รถจักรยานยนต์ ชน รถยนต์</option>
@@ -269,9 +269,9 @@ const RequestView: React.FC<RequestViewProps> = ({
 
                   {/* ✅ เพิ่มส่วนนี้: คำถามเกี่ยวกับชาวต่างชาติ */}
                   <div className="space-y-2">
-                    <label className="block text-[13px] font-bold text-blue-700 uppercase tracking-wider ml-1 mb-2">เหตุการณ์นี้เกี่ยวข้องกับชาวต่างชาติหรือไม่ <span className="text-red-500">*</span></label>
+                     <label htmlFor="foreigner-involved" className="block text-[13px] font-bold text-blue-700 uppercase tracking-wider ml-1 mb-2">เหตุการณ์นี้เกี่ยวข้องกับชาวต่างชาติหรือไม่ <span className="text-red-500">*</span></label>
                     <div className="relative group">
-                      <select required className="w-full px-8 py-4 bg-blue-50/50 border-2 border-blue-200 rounded-2xl appearance-none" value={formData.isForeignerInvolved} onChange={e => setFormData({...formData, isForeignerInvolved: e.target.value})}>
+                       <select id="foreigner-involved" name="foreignerInvolved" required className="w-full px-8 py-4 bg-blue-50/50 border-2 border-blue-200 rounded-2xl appearance-none" value={formData.isForeignerInvolved} onChange={e => setFormData({...formData, isForeignerInvolved: e.target.value})}>
                         <option value="">-- โปรดเลือกคำตอบ --</option>
                         <option value="YES">เกี่ยวข้อง</option>
                         <option value="NO">ไม่เกี่ยวข้อง</option>
@@ -284,8 +284,8 @@ const RequestView: React.FC<RequestViewProps> = ({
               )}
 
               <div className="mt-8 space-y-2">
-                <label className="block text-[13px] font-semibold text-slate-600 uppercase tracking-wider ml-1">รายละเอียดเพิ่มเติม <span className="text-red-500">*</span></label>
-                <textarea required rows={4} className="w-full px-8 py-5 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-50 outline-none resize-none shadow-sm" placeholder="อธิบายลักษณะเหตุการณ์, สีรถ, ทะเบียน..." value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
+                 <label htmlFor="event-description" className="block text-[13px] font-semibold text-slate-600 uppercase tracking-wider ml-1">รายละเอียดเพิ่มเติม <span className="text-red-500">*</span></label>
+                 <textarea id="event-description" name="eventDescription" required rows={4} className="w-full px-8 py-5 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-50 outline-none resize-none shadow-sm" placeholder="อธิบายลักษณะเหตุการณ์, สีรถ, ทะเบียน..." value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
               </div>
             </FormSection>
 
@@ -355,7 +355,17 @@ const RequestView: React.FC<RequestViewProps> = ({
                   {formData.deliveryMethod === 'LINE' ? (
                   <div className="p-8 bg-emerald-50/40 rounded-2xl border border-emerald-100 flex flex-col md:flex-row items-center gap-8 shadow-sm">
                       <div className="w-32 h-32 bg-white rounded-3xl flex items-center justify-center border border-emerald-100 shadow-sm flex-shrink-0">
-                          <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://lin.ee/VDA4zO8`} alt="Line OA QR" className="w-24 h-24 object-contain mix-blend-multiply" />
+                          {/* QR image is generated by the configured external LINE QR service. */}
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://lin.ee/VDA4zO8"
+                            alt="คิวอาร์โค้ดเพิ่มเพื่อน LINE Official Account"
+                            width={96}
+                            height={96}
+                            loading="lazy"
+                            decoding="async"
+                            className="w-24 h-24 object-contain mix-blend-multiply"
+                          />
                       </div>
                       <div className="text-center md:text-left space-y-2">
                           <p className="font-bold text-emerald-900 text-lg">ขั้นตอนรับไฟล์ผ่าน LINE</p>

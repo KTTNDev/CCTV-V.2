@@ -239,6 +239,11 @@ React.FC<TrackViewProps> = ({
     'secure',
   );
 
+  const secureTabRef =
+    useRef<HTMLButtonElement>(null);
+  const legacyTabRef =
+    useRef<HTMLButtonElement>(null);
+
   const [
     legacyTrackingId,
     setLegacyTrackingId,
@@ -269,11 +274,65 @@ React.FC<TrackViewProps> = ({
   const resultSectionRef =
     useRef<HTMLDivElement>(null);
 
+  const selectTrackingMode = (
+    mode: 'secure' | 'legacy',
+    moveFocus = false,
+  ) => {
+    setTrackingMode(mode);
+
+    if (moveFocus) {
+      window.requestAnimationFrame(() => {
+        const target =
+          mode === 'secure'
+            ? secureTabRef.current
+            : legacyTabRef.current;
+
+        target?.focus();
+      });
+    }
+  };
+
+  const handleTabKeyDown = (
+    event:
+      React.KeyboardEvent<HTMLButtonElement>,
+  ) => {
+    if (
+      ![
+        'ArrowLeft',
+        'ArrowRight',
+        'Home',
+        'End',
+      ].includes(event.key)
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+
+    const nextMode =
+      event.key === 'Home'
+        ? 'secure'
+        : event.key === 'End'
+          ? 'legacy'
+          : trackingMode === 'secure'
+            ? 'legacy'
+            : 'secure';
+
+    selectTrackingMode(
+      nextMode,
+      true,
+    );
+  };
+
   useEffect(() => {
     if (
       trackResult &&
       resultSectionRef.current
     ) {
+      resultSectionRef.current.focus({
+        preventScroll: true,
+      });
+
       resultSectionRef.current.scrollIntoView({
         behavior: 'smooth',
         block: 'start',
@@ -351,13 +410,22 @@ React.FC<TrackViewProps> = ({
               aria-label="เลือกประเภทคำร้อง"
             >
               <button
+                ref={secureTabRef}
                 type="button"
                 role="tab"
+                id="secure-tracking-tab"
+                aria-controls="secure-tracking-panel"
                 aria-selected={
                   trackingMode === 'secure'
                 }
+                tabIndex={
+                  trackingMode === 'secure'
+                    ? 0
+                    : -1
+                }
+                onKeyDown={handleTabKeyDown}
                 onClick={() =>
-                  setTrackingMode('secure')
+                  selectTrackingMode('secure')
                 }
                 className={`min-h-12 rounded-xl px-4 text-sm font-semibold transition-all ${
                   trackingMode === 'secure'
@@ -369,13 +437,22 @@ React.FC<TrackViewProps> = ({
               </button>
 
               <button
+                ref={legacyTabRef}
                 type="button"
                 role="tab"
+                id="legacy-tracking-tab"
+                aria-controls="legacy-tracking-panel"
                 aria-selected={
                   trackingMode === 'legacy'
                 }
+                tabIndex={
+                  trackingMode === 'legacy'
+                    ? 0
+                    : -1
+                }
+                onKeyDown={handleTabKeyDown}
                 onClick={() =>
-                  setTrackingMode('legacy')
+                  selectTrackingMode('legacy')
                 }
                 className={`min-h-12 rounded-xl px-4 text-sm font-semibold transition-all ${
                   trackingMode === 'legacy'
@@ -389,6 +466,10 @@ React.FC<TrackViewProps> = ({
 
             {trackingMode === 'secure' ? (
               <form
+                id="secure-tracking-panel"
+                role="tabpanel"
+                aria-labelledby="secure-tracking-tab"
+                aria-busy={loading}
                 onSubmit={handleTrackRequest}
                 className="mt-6 text-left"
               >
@@ -461,6 +542,10 @@ React.FC<TrackViewProps> = ({
               </form>
             ) : (
               <form
+                id="legacy-tracking-panel"
+                role="tabpanel"
+                aria-labelledby="legacy-tracking-tab"
+                aria-busy={loading}
                 onSubmit={handleLegacySubmit}
                 className="mt-6 text-left"
               >
@@ -585,6 +670,9 @@ React.FC<TrackViewProps> = ({
       {trackResult && (
         <div
           ref={resultSectionRef}
+          tabIndex={-1}
+          aria-live="polite"
+          aria-label="ผลการติดตามสถานะคำร้อง"
           className="mt-10 space-y-6 scroll-mt-8 animate-in fade-in slide-in-from-bottom-5 duration-500"
         >
           <section

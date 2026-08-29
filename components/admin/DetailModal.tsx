@@ -31,6 +31,9 @@ import {
   updateAdminRequest,
 } from "../../lib/api-client";
 import {
+  useModalAccessibility,
+} from "../../hooks/useModalAccessibility";
+import {
   ACCIDENT_SUBTYPE_TH,
   EVENT_TYPE_TH,
   STATUS_TH,
@@ -40,6 +43,96 @@ import {
   formatPhoneNumber,
   getDirectDriveLink,
 } from "./utils/formatters";
+
+interface DetailMapInstance {
+  setView(
+    coordinates: [number, number],
+    zoom: number,
+  ): DetailMapInstance;
+
+  invalidateSize(): void;
+  remove(): void;
+}
+
+interface DetailMapLayer {
+  addTo(
+    map: DetailMapInstance,
+  ): DetailMapLayer;
+}
+
+interface DetailMapMarker {
+  addTo(
+    map: DetailMapInstance,
+  ): DetailMapMarker;
+
+  bindPopup(
+    content: string,
+  ): DetailMapMarker;
+
+  openPopup():
+    DetailMapMarker;
+}
+
+interface DetailLeafletNamespace {
+  map(
+    element: HTMLElement,
+  ): DetailMapInstance;
+
+  tileLayer(
+    url: string,
+    options: {
+      attribution: string;
+    },
+  ): DetailMapLayer;
+
+  marker(
+    coordinates: [number, number],
+  ): DetailMapMarker;
+}
+
+type DetailLeafletWindow =
+  Window & {
+    L?: DetailLeafletNamespace;
+  };
+
+function getDetailLeaflet():
+  DetailLeafletNamespace | null {
+  if (
+    typeof window === "undefined"
+  ) {
+    return null;
+  }
+
+  return (
+    (
+      window as
+        DetailLeafletWindow
+    ).L ?? null
+  );
+}
+
+function escapeMapPopup(
+  value: string,
+): string {
+  return value.replace(
+    /[&<>"']/g,
+    (character) => {
+      const entities:
+        Record<string, string> = {
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#039;",
+        };
+
+      return (
+        entities[character] ??
+        character
+      );
+    },
+  );
+}
 
 const ADMIN_STATUSES = [
   "pending",
@@ -91,11 +184,15 @@ const AttachmentThumbnail:
     return (
       <div className="group relative h-36 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg md:h-44">
         {!previewFailed ? (
+          // Evidence URLs can come from legacy Google Drive or Firebase records.
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={getDirectDriveLink(
               url,
             )}
             alt={label}
+            loading="lazy"
+            decoding="async"
             className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
             onError={() =>
               setPreviewFailed(true)
@@ -184,6 +281,13 @@ const [
       setIsUpdating,
     ] = useState(false);
 
+    const dialogRef =
+      useModalAccessibility({
+        isOpen,
+        onClose,
+        closeDisabled: isUpdating,
+      });
+
     const [
       successMessage,
       setSuccessMessage,
@@ -197,8 +301,10 @@ const [
     const mapContainerRef =
       useRef<HTMLDivElement>(null);
 
-    const mapInstanceRef =
-      useRef<any>(null);
+   const mapInstanceRef =
+  useRef<DetailMapInstance | null>(
+    null,
+  );
 
     useEffect(() => {
       if (!data) {
@@ -226,58 +332,26 @@ setTempStatus(
     }, [data]);
 
     useEffect(() => {
-      if (!isOpen) {
-        return;
-      }
+    if (
+  !isOpen ||
+  !data ||
+  data.latitude === null ||
+  data.longitude === null
+) {
+  return;
+}
 
-      const previousOverflow =
-        document.body.style.overflow;
+const latitude =
+  data.latitude;
 
-      document.body.style.overflow =
-        "hidden";
+const longitude =
+  data.longitude;
 
-      const handleKeyDown = (
-        event: KeyboardEvent,
-      ) => {
-        if (
-          event.key === "Escape" &&
-          !isUpdating
-        ) {
-          onClose();
-        }
-      };
+const location =
+  data.location ||
+  "จุดเกิดเหตุ";
 
-      window.addEventListener(
-        "keydown",
-        handleKeyDown,
-      );
-
-      return () => {
-        document.body.style.overflow =
-          previousOverflow;
-
-        window.removeEventListener(
-          "keydown",
-          handleKeyDown,
-        );
-      };
-    }, [
-      isOpen,
-      isUpdating,
-      onClose,
-    ]);
-
-    useEffect(() => {
-      if (
-        !isOpen ||
-        !data ||
-        data.latitude === null ||
-        data.longitude === null
-      ) {
-        return;
-      }
-
-      let cancelled = false;
+let cancelled = false;
 
       const initializeMap = () => {
         if (
@@ -287,11 +361,8 @@ setTempStatus(
           return;
         }
 
-        const leaflet = (
-          window as typeof window & {
-            L?: any;
-          }
-        ).L;
+    const leaflet =
+  getDetailLeaflet();
 
         if (!leaflet) {
           return;
@@ -308,10 +379,10 @@ setTempStatus(
             mapContainerRef.current,
           )
           .setView(
-            [
-              data.latitude,
-              data.longitude,
-            ],
+           [
+  latitude,
+  longitude,
+],
             16,
           );
 
@@ -325,17 +396,18 @@ setTempStatus(
           )
           .addTo(map);
 
-        leaflet
-          .marker([
-            data.latitude,
-            data.longitude,
-          ])
-          .addTo(map)
-          .bindPopup(
-            data.location ||
-              "จุดเกิดเหตุ",
-          )
-          .openPopup();
+       leaflet
+  .marker([
+    latitude,
+    longitude,
+  ])
+  .addTo(map)
+  .bindPopup(
+    escapeMapPopup(
+      location,
+    ),
+  )
+  .openPopup();
 
         mapInstanceRef.current =
           map;
@@ -367,11 +439,8 @@ setTempStatus(
         );
       }
 
-      const existingLeaflet = (
-        window as typeof window & {
-          L?: any;
-        }
-      ).L;
+      const existingLeaflet =
+  getDetailLeaflet();
 
       let script:
         | HTMLScriptElement
@@ -427,14 +496,10 @@ setTempStatus(
             null;
         }
       };
-    }, [
-      isOpen,
-      data?.id,
-      data?.latitude,
-      data?.longitude,
-      data?.location,
-    ]);
-
+   }, [
+  isOpen,
+  data,
+]);
     if (!isOpen || !data) {
       return null;
     }
@@ -589,14 +654,10 @@ setTempStatus(
 
     return (
       <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="request-detail-title"
         className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/70 p-2 backdrop-blur-md md:p-8"
       >
-        <button
-          type="button"
-          aria-label="ปิดหน้ารายละเอียด"
+        <div
+          aria-hidden="true"
           onClick={() => {
             if (!isUpdating) {
               onClose();
@@ -605,7 +666,14 @@ setTempStatus(
           className="absolute inset-0 cursor-default"
         />
 
-        <div className="relative z-10 flex max-h-[96vh] w-full max-w-7xl flex-col overflow-hidden rounded-[28px] border border-white/20 bg-white shadow-2xl">
+        <div
+          ref={dialogRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="request-detail-title"
+          tabIndex={-1}
+          className="relative z-10 flex max-h-[96vh] w-full max-w-7xl flex-col overflow-hidden rounded-[28px] border border-white/20 bg-white shadow-2xl outline-none"
+        >
           <header className="flex items-start justify-between border-b border-slate-100 bg-white px-5 py-5 md:px-8">
             <div>
               <div className="mb-2 flex flex-wrap items-center gap-2">

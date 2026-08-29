@@ -1,120 +1,615 @@
 'use client';
 
-import React, { useRef, useEffect, useState, useMemo } from 'react';
-import { 
-  XCircle, FileBarChart, Download, Loader2, TrendingUp, Users, 
-  ShieldCheck, MapPinned, Building2, Globe, Eye, Car, AlertTriangle,
-  Activity, ListFilter
-} from 'lucide-react'; 
-import { 
-  CartesianGrid, XAxis, YAxis, Tooltip as ChartTooltip, 
-  ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Legend,
-  AreaChart, Area, LabelList 
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+
+import {
+  Activity,
+  AlertTriangle,
+  Car,
+  Download,
+  Eye,
+  FileBarChart,
+  Globe,
+  ListFilter,
+  Loader2,
+  MapPinned,
+  ShieldCheck,
+  XCircle,
+} from 'lucide-react';
+
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  LabelList,
+  Legend,
+  ResponsiveContainer,
+  Tooltip as ChartTooltip,
+  XAxis,
+  YAxis,
 } from 'recharts';
+
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import { EVENT_TYPE_TH, STATUS_TH, COLORS } from '../admin/utils/formatters';
 
-const ACCIDENT_SUBTYPE_TH: Record<string, string> = {
-  'MC_VS_MC': 'จยย. ชน จยย.',
-  'MC_VS_CAR': 'จยย. ชน รถยนต์',
-  'CAR_VS_CAR': 'รถยนต์ ชน รถยนต์',
-  'PEDESTRIAN': 'ชนคนเดินเท้า',
-  'HIT_AND_RUN': 'ชนแล้วหนี',
-  'OTHER': 'อื่นๆ'
-};
+import type {
+  CCTVRequest,
+} from '../../types';
+
+import {
+  EVENT_TYPE_TH,
+  STATUS_TH,
+} from './utils/formatters';
+
+import {
+  useModalAccessibility,
+} from '../../hooks/useModalAccessibility';
+
+const ACCIDENT_SUBTYPE_TH:
+  Record<string, string> = {
+    MC_VS_MC: 'จยย. ชน จยย.',
+    MC_VS_CAR:
+      'จยย. ชน รถยนต์',
+    CAR_VS_CAR:
+      'รถยนต์ ชน รถยนต์',
+    PEDESTRIAN:
+      'ชนคนเดินเท้า',
+    HIT_AND_RUN: 'ชนแล้วหนี',
+    OTHER: 'อื่นๆ',
+  };
+
+interface ChartDataItem {
+  name: string;
+  value: number;
+}
+
+interface VisitorHistoryItem {
+  date: string;
+  views: number;
+  requests: number;
+}
+
+interface ReportData {
+  chartData: ChartDataItem[];
+  pieData: ChartDataItem[];
+}
 
 interface ReportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  filteredRequests: any[];
-  reportData: { chartData: any[]; pieData: any[] };
+
+  filteredRequests:
+    CCTVRequest[];
+
+  reportData: ReportData;
+
   startDate: string;
   endDate: string;
-  visitorHistory: any[];
-  visitorStats: { today: number; total: number }; 
+
+  visitorHistory:
+    VisitorHistoryItem[];
+
+  visitorStats: {
+    today: number;
+    total: number;
+  };
 }
 
-export const ReportModal: React.FC<ReportModalProps> = ({
-  isOpen, onClose, filteredRequests, reportData, startDate, endDate, visitorHistory, visitorStats
-}) => {
-  const [isExporting, setIsExporting] = useState(false);
-  const [timeScale, setTimeScale] = useState<'day' | 'month' | 'year'>('day');
-  const reportRef = useRef<HTMLDivElement>(null);
-  const analyticsMapRef = useRef<HTMLDivElement>(null);
-  const leafletAnalyticsInstance = useRef<any>(null);
+interface AnalyticsMapInstance {
+  setView(
+    coordinates: [number, number],
+    zoom: number,
+  ): AnalyticsMapInstance;
 
-  const accidentSubtypeStats = useMemo(() => {
-    const counts: Record<string, number> = {};
-    filteredRequests
-      .filter(req => req.eventType === 'ACCIDENT' && req.accidentSubtype)
-      .forEach(req => {
-        const label = ACCIDENT_SUBTYPE_TH[req.accidentSubtype] || 'ไม่ระบุ';
-        counts[label] = (counts[label] || 0) + 1;
-      });
-    return Object.keys(counts).map(name => ({ name, value: counts[name] }));
-  }, [filteredRequests]);
+  remove(): void;
+}
 
-  const processedTrafficData = useMemo(() => {
-    if (!visitorHistory || visitorHistory.length === 0) return [];
-    const getGroupKey = (dateStr: string) => {
-      const [d, m, y] = dateStr.split('/');
-      if (timeScale === 'year') return `ปี ${y}`;
-      if (timeScale === 'month') return `${m}/${y}`;
-      return dateStr;
-    };
-    const groupedMap = new Map();
-    visitorHistory.forEach(item => {
-      const key = getGroupKey(item.date);
-      if (!groupedMap.has(key)) groupedMap.set(key, { date: key, views: 0, requests: 0 });
-      const group = groupedMap.get(key);
-      group.views += item.views;
-      group.requests += item.requests;
-    });
-    return Array.from(groupedMap.values());
-  }, [visitorHistory, timeScale]);
+interface AnalyticsMapLayer {
+  addTo(
+    map: AnalyticsMapInstance,
+  ): AnalyticsMapLayer;
+}
 
-  useEffect(() => {
-    if (isOpen && analyticsMapRef.current && typeof window !== 'undefined') {
-      const initAnalyticsMap = () => {
-        const L = (window as any).L;
-        if (!L || !analyticsMapRef.current) return;
-        if (leafletAnalyticsInstance.current) leafletAnalyticsInstance.current.remove();
-        const map = L.map(analyticsMapRef.current).setView([7.7858, 98.3225], 14);
-        leafletAnalyticsInstance.current = map;
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-        filteredRequests.forEach(req => {
-          if (req.latitude && req.longitude) {
-            const color = req.status === 'completed' ? '#10b981' : '#3b82f6';
-            L.circleMarker([req.latitude, req.longitude], {
-              radius: 8, fillColor: color, color: "#fff", weight: 2, opacity: 1, fillOpacity: 0.8
-            }).addTo(map).bindPopup(`<b>${req.trackingId}</b><br>${EVENT_TYPE_TH[req.eventType || 'OTHER']}`);
-          }
-        });
-      };
-      if (!(window as any).L) {
-        const script = document.createElement("script");
-        script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-        script.onload = initAnalyticsMap;
-        document.body.appendChild(script);
-      } else { setTimeout(initAnalyticsMap, 100); }
-    }
-  }, [isOpen, filteredRequests]);
+interface AnalyticsCircleMarker {
+  addTo(
+    map: AnalyticsMapInstance,
+  ): AnalyticsCircleMarker;
 
-  const exportPDF = async () => {
-    if (!reportRef.current) return;
-    setIsExporting(true);
-    try {
-      const canvas = await html2canvas(reportRef.current, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`Rawai_CCTV_Report_2026.pdf`);
-    } catch (e) { console.error(e); } finally { setIsExporting(false); }
+  bindPopup(
+    html: string,
+  ): AnalyticsCircleMarker;
+}
+
+interface AnalyticsLeafletNamespace {
+  map(
+    element: HTMLElement,
+  ): AnalyticsMapInstance;
+
+  tileLayer(
+    url: string,
+  ): AnalyticsMapLayer;
+
+  circleMarker(
+    coordinates: [number, number],
+    options: {
+      radius: number;
+      fillColor: string;
+      color: string;
+      weight: number;
+      opacity: number;
+      fillOpacity: number;
+    },
+  ): AnalyticsCircleMarker;
+}
+
+type AnalyticsLeafletWindow =
+  Window & {
+    L?: AnalyticsLeafletNamespace;
   };
 
+function getAnalyticsLeaflet():
+  AnalyticsLeafletNamespace | null {
+  if (
+    typeof window === 'undefined'
+  ) {
+    return null;
+  }
+
+  return (
+    (
+      window as
+        AnalyticsLeafletWindow
+    ).L ?? null
+  );
+}
+
+function escapeReportHtml(
+  value: string,
+): string {
+  return value.replace(
+    /[&<>"']/g,
+    (character) => {
+      const entities:
+        Record<string, string> = {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#039;',
+        };
+
+      return (
+        entities[character] ??
+        character
+      );
+    },
+  );
+}
+
+export const ReportModal = ({
+  isOpen,
+  onClose,
+  filteredRequests,
+  reportData,
+  startDate,
+  endDate,
+  visitorHistory,
+  visitorStats,
+}: ReportModalProps) => {
+  const [
+    isExporting,
+    setIsExporting,
+  ] = useState(false);
+
+  const [
+    timeScale,
+    setTimeScale,
+  ] = useState<
+    'day' | 'month' | 'year'
+  >('day');
+
+  const reportRef =
+    useRef<HTMLDivElement>(null);
+
+  const dialogRef =
+    useModalAccessibility({
+      isOpen,
+      onClose,
+      closeDisabled: isExporting,
+    });
+
+  const analyticsMapRef =
+    useRef<HTMLDivElement>(null);
+
+  const leafletAnalyticsInstance =
+    useRef<AnalyticsMapInstance | null>(
+      null,
+    );
+
+  const accidentSubtypeStats =
+    useMemo(() => {
+      const counts:
+        Record<string, number> = {};
+
+      for (
+        const request
+        of filteredRequests
+      ) {
+        if (
+          request.eventType !==
+            'ACCIDENT' ||
+          !request.accidentSubtype
+        ) {
+          continue;
+        }
+
+        const label =
+          ACCIDENT_SUBTYPE_TH[
+            request.accidentSubtype
+          ] ?? 'ไม่ระบุ';
+
+        counts[label] =
+          (counts[label] ?? 0) + 1;
+      }
+
+      return Object.entries(
+        counts,
+      ).map(
+        ([name, value]) => ({
+          name,
+          value,
+        }),
+      );
+    }, [filteredRequests]);
+
+  const processedTrafficData =
+    useMemo(() => {
+      const getGroupKey = (
+        dateString: string,
+      ): string => {
+        const [
+          ,
+          month,
+          year,
+        ] = dateString.split('/');
+
+        if (
+          timeScale === 'year'
+        ) {
+          return `ปี ${year ?? '-'}`;
+        }
+
+        if (
+          timeScale === 'month'
+        ) {
+          return (
+            `${month ?? '-'}/` +
+            (year ?? '-')
+          );
+        }
+
+        return dateString;
+      };
+
+      const groupedMap =
+        new Map<
+          string,
+          VisitorHistoryItem
+        >();
+
+      for (
+        const item
+        of visitorHistory
+      ) {
+        const key =
+          getGroupKey(item.date);
+
+        const existing =
+          groupedMap.get(key);
+
+        if (existing) {
+          existing.views +=
+            item.views;
+
+          existing.requests +=
+            item.requests;
+
+          continue;
+        }
+
+        groupedMap.set(key, {
+          date: key,
+          views: item.views,
+          requests:
+            item.requests,
+        });
+      }
+
+      return Array.from(
+        groupedMap.values(),
+      );
+    }, [
+      visitorHistory,
+      timeScale,
+    ]);
+
+  useEffect(() => {
+    if (
+      !isOpen ||
+      !analyticsMapRef.current
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+
+    let initializeTimer:
+      | number
+      | null = null;
+
+    let script:
+      | HTMLScriptElement
+      | null = null;
+
+    const initializeMap = () => {
+      if (
+        cancelled ||
+        !analyticsMapRef.current
+      ) {
+        return;
+      }
+
+      const leaflet =
+        getAnalyticsLeaflet();
+
+      if (!leaflet) {
+        return;
+      }
+
+      leafletAnalyticsInstance
+        .current
+        ?.remove();
+
+      const map =
+        leaflet
+          .map(
+            analyticsMapRef.current,
+          )
+          .setView(
+            [7.7858, 98.3225],
+            14,
+          );
+
+      leafletAnalyticsInstance
+        .current = map;
+
+      leaflet
+        .tileLayer(
+          'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        )
+        .addTo(map);
+
+      for (
+        const request
+        of filteredRequests
+      ) {
+        if (
+          request.latitude ===
+            null ||
+          request.longitude ===
+            null
+        ) {
+          continue;
+        }
+
+        const color =
+          request.status ===
+          'completed'
+            ? '#10b981'
+            : '#3b82f6';
+
+        const eventLabel =
+          EVENT_TYPE_TH[
+            request.eventType ||
+              'OTHER'
+          ] ??
+          EVENT_TYPE_TH.OTHER;
+
+        leaflet
+          .circleMarker(
+            [
+              request.latitude,
+              request.longitude,
+            ],
+            {
+              radius: 8,
+              fillColor: color,
+              color: '#fff',
+              weight: 2,
+              opacity: 1,
+              fillOpacity: 0.8,
+            },
+          )
+          .addTo(map)
+          .bindPopup(
+            `<b>${escapeReportHtml(
+              request.trackingId,
+            )}</b><br>${escapeReportHtml(
+              eventLabel,
+            )}`,
+          );
+      }
+    };
+
+    if (
+      !document.getElementById(
+        'leaflet-css',
+      )
+    ) {
+      const stylesheet =
+        document.createElement(
+          'link',
+        );
+
+      stylesheet.id =
+        'leaflet-css';
+
+      stylesheet.rel =
+        'stylesheet';
+
+      stylesheet.href =
+        'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+
+      document.head.appendChild(
+        stylesheet,
+      );
+    }
+
+    if (getAnalyticsLeaflet()) {
+      initializeTimer =
+        window.setTimeout(
+          initializeMap,
+          100,
+        );
+    } else {
+      script =
+        document.getElementById(
+          'leaflet-script',
+        ) as
+          | HTMLScriptElement
+          | null;
+
+      if (!script) {
+        script =
+          document.createElement(
+            'script',
+          );
+
+        script.id =
+          'leaflet-script';
+
+        script.src =
+          'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+
+        script.async = true;
+
+        document.body.appendChild(
+          script,
+        );
+      }
+
+      script.addEventListener(
+        'load',
+        initializeMap,
+      );
+    }
+
+    return () => {
+      cancelled = true;
+
+      if (
+        initializeTimer !== null
+      ) {
+        window.clearTimeout(
+          initializeTimer,
+        );
+      }
+
+      script?.removeEventListener(
+        'load',
+        initializeMap,
+      );
+
+      leafletAnalyticsInstance
+        .current
+        ?.remove();
+
+      leafletAnalyticsInstance
+        .current = null;
+    };
+  }, [
+    isOpen,
+    filteredRequests,
+  ]);
+
+  const exportPDF =
+    async (): Promise<void> => {
+      if (!reportRef.current) {
+        return;
+      }
+
+      setIsExporting(true);
+
+      try {
+        const canvas =
+          await html2canvas(
+            reportRef.current,
+            {
+              scale: 2,
+              useCORS: true,
+              backgroundColor:
+                '#ffffff',
+            },
+          );
+
+        const imageData =
+          canvas.toDataURL(
+            'image/png',
+          );
+
+        const pdf =
+          new jsPDF(
+            'p',
+            'mm',
+            'a4',
+          );
+
+        const pdfWidth =
+          pdf.internal.pageSize
+            .getWidth();
+
+        const pdfHeight =
+          (
+            canvas.height *
+            pdfWidth
+          ) / canvas.width;
+
+        pdf.addImage(
+          imageData,
+          'PNG',
+          0,
+          0,
+          pdfWidth,
+          pdfHeight,
+        );
+
+        const rangeStart =
+          startDate || 'all';
+
+        const rangeEnd =
+          endDate || 'all';
+
+        pdf.save(
+          `Rawai_CCTV_Report_${rangeStart}_${rangeEnd}.pdf`,
+        );
+      } catch (
+        exportError: unknown
+      ) {
+        console.warn(
+          'PDF export failed:',
+          exportError,
+        );
+      } finally {
+        setIsExporting(false);
+      }
+    };
   if (!isOpen) return null;
 
   return (
@@ -122,7 +617,14 @@ export const ReportModal: React.FC<ReportModalProps> = ({
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-0 md:p-4 bg-slate-900/90 backdrop-blur-2xl overflow-hidden font-sans">
       
       {/* ✅ 2. ปรับขอบโค้งและความสูงให้เหมาะกับมือถือ */}
-      <div className="bg-[#fcfcfd] w-full max-w-6xl h-full md:h-[95vh] rounded-none md:rounded-3xl shadow-2xl flex flex-col my-0 md:my-4 animate-in zoom-in-95 duration-500 border border-white/20">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="report-modal-title"
+        tabIndex={-1}
+        className="bg-[#fcfcfd] w-full max-w-6xl h-full md:h-[95vh] rounded-none md:rounded-3xl shadow-2xl flex flex-col my-0 md:my-4 animate-in zoom-in-95 duration-500 border border-white/20 outline-none"
+      >
         
         {/* ✨ Header Section - จัดเรียง Flex ใหม่สำหรับมือถือ */}
         <div className="px-6 py-5 md:px-10 md:py-7 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white/80 backdrop-blur-md rounded-none md:rounded-t-[4rem] shrink-0">
@@ -131,7 +633,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
               <FileBarChart className="w-6 h-6 md:w-7 md:h-7" />
             </div>
             <div>
-              <h2 className="text-lg md:text-xl font-bold text-slate-900 tracking-tight leading-tight">Analytical Command Center</h2>
+              <h2 id="report-modal-title" className="text-lg md:text-xl font-bold text-slate-900 tracking-tight leading-tight">Analytical Command Center</h2>
               <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 md:mt-1">CCTV Intelligence Portal • Rawai</p>
             </div>
           </div>
@@ -140,16 +642,16 @@ export const ReportModal: React.FC<ReportModalProps> = ({
           <div className="flex flex-wrap items-center gap-2 md:gap-4 w-full md:w-auto justify-between md:justify-end mt-2 md:mt-0">
             <div className="bg-slate-200/50 p-1 rounded-xl flex gap-1 overflow-x-auto hide-scrollbar">
               {(['day', 'month', 'year'] as const).map((v) => (
-                <button key={v} onClick={() => setTimeScale(v)} className={`px-3 py-1.5 md:px-4 md:py-1.5 rounded-lg text-[9px] font-bold uppercase transition-all whitespace-nowrap ${timeScale === v ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}>
+                 <button type="button" key={v} aria-pressed={timeScale === v} onClick={() => setTimeScale(v)} className={`px-3 py-1.5 md:px-4 md:py-1.5 rounded-lg text-[9px] font-bold uppercase transition-all whitespace-nowrap ${timeScale === v ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}>
                   {v === 'day' ? 'Daily' : v === 'month' ? 'Monthly' : 'Yearly'}
                 </button>
               ))}
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={exportPDF} disabled={isExporting} className="bg-slate-900 text-white px-4 py-2.5 md:px-6 md:py-3 rounded-xl md:rounded-2xl font-bold text-[9px] md:text-[10px] hover:bg-slate-800 shadow-xl flex items-center gap-2 transition-all">
+              <button type="button" onClick={exportPDF} disabled={isExporting} aria-live="polite" className="bg-slate-900 text-white px-4 py-2.5 md:px-6 md:py-3 rounded-xl md:rounded-2xl font-bold text-[9px] md:text-[10px] hover:bg-slate-800 shadow-xl flex items-center gap-2 transition-all">
                 {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} <span className="hidden sm:inline">EXPORT PDF</span>
               </button>
-              <button onClick={onClose} className="p-2.5 md:p-3 bg-white text-slate-300 hover:text-red-500 rounded-xl md:rounded-2xl border border-slate-100 transition-all hover:bg-red-50"><XCircle className="w-5 h-5 md:w-6 md:h-6"/></button>
+              <button type="button" onClick={onClose} disabled={isExporting} aria-label="ปิดรายงานวิเคราะห์" className="p-2.5 md:p-3 bg-white text-slate-300 hover:text-red-500 rounded-xl md:rounded-2xl border border-slate-100 transition-all hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"><XCircle className="w-5 h-5 md:w-6 md:h-6"/></button>
             </div>
           </div>
         </div>

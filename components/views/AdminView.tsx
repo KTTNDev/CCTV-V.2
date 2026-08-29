@@ -298,12 +298,15 @@ const [
           selectedRequest.id,
       );
 
-    if (updatedRequest) {
+    if (
+      updatedRequest &&
+      updatedRequest !== selectedRequest
+    ) {
       setSelectedRequest(
         updatedRequest,
       );
     }
-  }, [requests, selectedRequest?.id]);
+  }, [requests, selectedRequest]);
 
   const fetchAnalyticsHistory =
     useCallback(async () => {

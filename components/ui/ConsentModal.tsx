@@ -3,15 +3,31 @@
 import React, { useState } from 'react';
 import { ShieldCheck, CheckCircle } from 'lucide-react';
 
+import {
+  useModalAccessibility,
+} from '../../hooks/useModalAccessibility';
+
 const ConsentModal = ({ onAgree, onCancel }: { onAgree: () => void, onCancel: () => void }) => {
   const [checked, setChecked] = useState(false);
+  const dialogRef =
+    useModalAccessibility({
+      isOpen: true,
+      onClose: onCancel,
+    });
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-      <div className="bg-white w-full max-w-2xl max-h-[85vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="consent-modal-title"
+        tabIndex={-1}
+        className="bg-white w-full max-w-2xl max-h-[85vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 outline-none"
+      >
         <div className="p-6 border-b border-gray-100 bg-gray-50 flex items-center gap-3">
           <ShieldCheck className="w-6 h-6 text-blue-600" />
-          <h2 className="text-xl font-bold text-gray-900">นโยบายการคุ้มครองข้อมูลส่วนบุคคล</h2>
+          <h2 id="consent-modal-title" className="text-xl font-bold text-gray-900">นโยบายการคุ้มครองข้อมูลส่วนบุคคล</h2>
         </div>
         
         <div className="p-6 overflow-y-auto text-sm text-gray-600 space-y-4 leading-relaxed custom-scrollbar">
@@ -26,16 +42,17 @@ const ConsentModal = ({ onAgree, onCancel }: { onAgree: () => void, onCancel: ()
         </div>
 
         <div className="p-6 border-t border-gray-100 bg-gray-50">
-          <label className="flex items-center gap-3 mb-6 cursor-pointer group select-none">
-            <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${checked ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300 group-hover:border-blue-400'}`}>
+          <label className="relative flex items-center gap-3 mb-6 cursor-pointer group select-none">
+            <input type="checkbox" className="peer sr-only" checked={checked} onChange={e => setChecked(e.target.checked)} />
+            <div aria-hidden="true" className={`w-5 h-5 rounded border flex items-center justify-center transition-colors peer-focus-visible:ring-4 peer-focus-visible:ring-blue-200 ${checked ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300 group-hover:border-blue-400'}`}>
                 {checked && <CheckCircle className="w-3.5 h-3.5 text-white" />}
             </div>
-            <input type="checkbox" className="sr-only" checked={checked} onChange={e => setChecked(e.target.checked)} />
             <span className="text-sm font-medium text-gray-900 group-hover:text-blue-700 transition-colors">ข้าพเจ้าได้อ่านแล้วและยินยอมเปิดเผยข้อมูล</span>
           </label>
           <div className="flex gap-3">
-            <button onClick={onCancel} className="flex-1 px-4 py-3 border border-gray-200 rounded-xl text-gray-700 font-medium hover:bg-white hover:border-gray-300 transition-all">ยกเลิก</button>
+            <button type="button" onClick={onCancel} className="flex-1 px-4 py-3 border border-gray-200 rounded-xl text-gray-700 font-medium hover:bg-white hover:border-gray-300 transition-all">ยกเลิก</button>
             <button
+                type="button"
                 onClick={onAgree}
                 disabled={!checked}
                 className="flex-1 px-4 py-3 bg-blue-600 rounded-xl text-white font-medium hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transform active:scale-[0.98]"

@@ -180,14 +180,19 @@ const HomeView: React.FC<HomeViewProps> = ({ setView, onRequestClick }) => {
              {quickLinks.map((link) => (
   <a
     key={link.url} href={link.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 p-3 rounded-2xl hover:bg-white hover:shadow-md transition-all group">
-                  <div className={`w-10 h-10 rounded-xl ${link.color} text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}><img
+                  <div className={`w-10 h-10 rounded-xl ${link.color} text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}>
+                    {/* Service icons are owned and hosted by their destination services. */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
   src={link.imageUrl}
   alt=""
   width={28}
   height={28}
   loading="lazy"
+  decoding="async"
   className="h-7 w-7 object-contain"
-/></div>
+/>
+                  </div>
                   <div className="flex-1 text-left"><p className="text-xs font-bold text-slate-700 leading-tight">{link.name}</p><p className="text-[10px] text-slate-400 font-bold uppercase">เข้าใช้งาน</p></div>
                   <ExternalLink className="w-3 h-3 text-slate-300" />
                 </a>

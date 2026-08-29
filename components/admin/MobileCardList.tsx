@@ -142,12 +142,17 @@ const MobilePreview:
 
     return (
       <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        {/* Evidence URLs can come from multiple legacy storage providers. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={getMiniThumbnailLink(
             url,
           )}
           alt=""
           loading="lazy"
+          decoding="async"
+          width={56}
+          height={56}
           className="h-full w-full object-cover"
           onError={() =>
             setPreviewFailed(true)

@@ -30,9 +30,14 @@ const Navbar: React.FC<NavbarProps> = ({ view, setView, onRequestClick }) => {
   className="group flex items-center gap-3.5 rounded-xl text-left select-none focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-teal-100"
 >
             <div className="relative h-12 w-12 rounded-xl overflow-hidden shadow-sm group-hover:shadow-md group-hover:scale-105 transition-all duration-300 bg-slate-100 flex-shrink-0">
+               {/* Static export keeps this externally hosted municipal logo unoptimized. */}
+               {/* eslint-disable-next-line @next/next/no-img-element */}
                <img 
                   src="https://lh3.googleusercontent.com/d/1QCbgntRqbIAlTmTBE85DEtJtx91U-1ll?authuser=0" 
                   alt="Rawai CCTV Logo" 
+                  width={48}
+                  height={48}
+                  decoding="async"
                   className="w-full h-full object-cover"
                />
             </div>
