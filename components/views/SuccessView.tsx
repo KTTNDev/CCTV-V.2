@@ -1,20 +1,29 @@
 'use client';
 
 import React, {
+  useEffect,
   useState,
 } from 'react';
 import {
+  AlertTriangle,
+  ArrowRight,
   Check,
   CheckCircle,
   Copy,
   Eye,
   EyeOff,
+  KeyRound,
+  MessageCircleMore,
+  SearchCheck,
   ShieldCheck,
 } from 'lucide-react';
 
 interface SubmissionResult {
   trackingId: string;
   trackingToken: string;
+  deliveryMethod:
+    | 'LINE'
+    | 'WALKIN';
 }
 
 interface SuccessViewProps {
@@ -70,15 +79,24 @@ React.FC<SuccessViewProps> = ({
         );
 
         setCopied(true);
-
-        window.setTimeout(
-          () => setCopied(false),
-          2500,
-        );
       } catch {
         setShowTrackingToken(true);
       }
     };
+
+  useEffect(() => {
+    if (!copied) {
+      return;
+    }
+
+    const timer = window.setTimeout(
+      () => setCopied(false),
+      2500,
+    );
+
+    return () =>
+      window.clearTimeout(timer);
+  }, [copied]);
 
   const handleTrackNow =
     async (): Promise<void> => {
@@ -100,8 +118,27 @@ React.FC<SuccessViewProps> = ({
       await trackingPromise;
     };
 
+  if (!submissionResult) {
+    return (
+      <div className="mx-auto mt-16 max-w-xl px-4 pb-20 text-center">
+        <div role="alert" className="rounded-3xl border border-amber-200 bg-amber-50 p-8">
+          <AlertTriangle className="mx-auto h-10 w-10 text-amber-600" aria-hidden="true" />
+          <h2 className="mt-4 text-xl font-bold text-slate-900">
+            ไม่พบข้อมูลการยื่นคำร้อง
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-slate-600">
+            กรุณากลับหน้าหลักและตรวจสอบคำร้องอีกครั้ง
+          </p>
+          <button type="button" onClick={() => setView('home')} className="mt-6 rounded-xl bg-slate-900 px-6 py-3 text-sm font-bold text-white">
+            กลับหน้าหลัก
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-xl mx-auto mt-16 text-center animate-in zoom-in duration-300 px-4 pb-20">
+    <div className="max-w-3xl mx-auto mt-10 text-center animate-in zoom-in duration-300 px-4 pb-20 sm:mt-16">
       <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
         <CheckCircle className="w-12 h-12 text-emerald-600" />
       </div>
@@ -110,13 +147,13 @@ React.FC<SuccessViewProps> = ({
         ยื่นคำร้องสำเร็จ
       </h2>
 
-      <p className="text-slate-600 mb-8 leading-relaxed">
+      <p className="mx-auto mb-8 max-w-xl text-slate-600 leading-relaxed">
         เจ้าหน้าที่ได้รับคำร้องแล้ว
         กรุณาบันทึกรหัสติดตามด้านล่าง
         สำหรับตรวจสอบความคืบหน้า
       </p>
 
-      <div className="bg-blue-50 border-2 border-dashed border-blue-200 rounded-3xl p-7 mb-5">
+      <div className="mx-auto mb-5 max-w-xl rounded-3xl border-2 border-dashed border-blue-200 bg-blue-50 p-7">
         <p className="text-sm text-blue-600 mb-2 font-semibold">
           เลขที่คำร้อง
         </p>
@@ -126,7 +163,17 @@ React.FC<SuccessViewProps> = ({
         </p>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-3xl p-6 mb-8 text-left shadow-sm">
+      <div className="mx-auto mb-6 max-w-xl rounded-3xl border border-amber-200 bg-amber-50 p-4 text-left">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" aria-hidden="true" />
+          <div>
+            <p className="text-sm font-bold text-amber-900">กรุณาบันทึกรหัสลับตอนนี้</p>
+            <p className="mt-1 text-xs leading-relaxed text-amber-800">รหัสติดตามแบบปลอดภัยจะแสดงในหน้านี้หลังยื่นสำเร็จ โปรดคัดลอกและเก็บไว้ในที่ปลอดภัยก่อนออกจากหน้านี้</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="mx-auto mb-8 max-w-xl rounded-3xl border border-slate-200 bg-white p-6 text-left shadow-sm">
         <div className="flex items-start gap-3 mb-5">
           <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center shrink-0">
             <ShieldCheck className="w-5 h-5 text-emerald-600" />
@@ -163,6 +210,7 @@ React.FC<SuccessViewProps> = ({
               )
             }
             disabled={!trackingToken}
+            aria-pressed={showTrackingToken}
             className="py-3 px-4 rounded-xl border border-slate-200 text-slate-700 font-semibold text-sm hover:bg-slate-50 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
           >
             {showTrackingToken ? (
@@ -182,6 +230,7 @@ React.FC<SuccessViewProps> = ({
             type="button"
             onClick={handleCopyToken}
             disabled={!trackingToken}
+            aria-live="polite"
             className="py-3 px-4 rounded-xl bg-slate-900 text-white font-semibold text-sm hover:bg-slate-800 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
           >
             {copied ? (
@@ -198,6 +247,38 @@ React.FC<SuccessViewProps> = ({
           </button>
         </div>
       </div>
+
+      <section aria-labelledby="success-next-steps" className="mb-8 rounded-3xl border border-slate-200 bg-white p-6 text-left shadow-sm sm:p-8">
+        <div className="mb-6 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600">Next steps</p>
+            <h3 id="success-next-steps" className="mt-1 text-xl font-bold text-slate-900">ขั้นตอนต่อไป</h3>
+          </div>
+          <ArrowRight className="h-5 w-5 text-slate-300" aria-hidden="true" />
+        </div>
+
+        <ol className="grid gap-4 sm:grid-cols-3">
+          <li className="rounded-2xl bg-slate-50 p-4">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-100 text-blue-700"><KeyRound className="h-4 w-4" aria-hidden="true" /></span>
+            <p className="mt-3 text-sm font-bold text-slate-900">1. เก็บรหัสติดตาม</p>
+            <p className="mt-1 text-xs leading-relaxed text-slate-500">คัดลอกรหัสฉบับเต็มและเก็บเป็นความลับ</p>
+          </li>
+          <li className="rounded-2xl bg-slate-50 p-4">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700"><SearchCheck className="h-4 w-4" aria-hidden="true" /></span>
+            <p className="mt-3 text-sm font-bold text-slate-900">2. รอการตรวจสอบ</p>
+            <p className="mt-1 text-xs leading-relaxed text-slate-500">เจ้าหน้าที่จะตรวจเอกสารและค้นหาภาพตามลำดับ</p>
+          </li>
+          <li className="rounded-2xl bg-slate-50 p-4">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700"><MessageCircleMore className="h-4 w-4" aria-hidden="true" /></span>
+            <p className="mt-3 text-sm font-bold text-slate-900">3. รับผลการดำเนินงาน</p>
+            <p className="mt-1 text-xs leading-relaxed text-slate-500">
+              {submissionResult.deliveryMethod === 'LINE'
+                ? 'ติดตามข้อความและรับผลผ่าน LINE OA ตามที่เลือกไว้'
+                : 'เมื่อสถานะเสร็จสิ้น ให้นำอุปกรณ์จัดเก็บข้อมูลมาติดต่อศูนย์ CCTV'}
+            </p>
+          </li>
+        </ol>
+      </section>
 
       <div className="space-y-3">
         <button

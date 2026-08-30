@@ -49,6 +49,22 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /public_cameras/{cameraId} {
+      // ประชาชนอ่านได้เฉพาะรายการที่อนุมัติให้เผยแพร่
+      // Admin อ่านได้ทั้งรายการเผยแพร่และรายการร่าง
+      allow read: if isAdmin()
+        || resource.data.published == true;
+
+      // การเพิ่มและแก้ไขต้องผ่าน manageCamera Function
+      allow write: if false;
+    }
+
+    match /camera_private_configs/{cameraId} {
+      // IP, RTSP path และข้อมูลทรัพย์สินอ่านได้เฉพาะ Admin
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

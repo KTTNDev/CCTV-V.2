@@ -1,6 +1,7 @@
 'use client';
 
 import React, {
+  useCallback,
   useEffect,
   useState,
 } from 'react';
@@ -11,15 +12,20 @@ import type {
   PublicHotspot,
 } from '../../lib/api-client';
 import AccidentMap from '../ui/AccidentMap';
+import {
+  useModalAccessibility,
+} from '../../hooks/useModalAccessibility';
 
 import {
   Camera,
+  CheckCircle2,
   ExternalLink,
+  FileCheck2,
   Globe,
   LayoutGrid,
-  Lock,
   Maximize2,
   Radio,
+  SearchCheck,
   ShieldCheck,
   X,
   Zap,
@@ -35,6 +41,17 @@ const PROMTHEP_LIVE_URL = "https://www.youtube.com/embed/JBjVYDDx_dA?autoplay=1&
 
 const HomeView: React.FC<HomeViewProps> = ({ setView, onRequestClick }) => {
   const [showLiveModal, setShowLiveModal] = useState(false);
+
+  const closeLiveModal =
+    useCallback(() => {
+      setShowLiveModal(false);
+    }, []);
+
+  const liveDialogRef =
+    useModalAccessibility({
+      isOpen: showLiveModal,
+      onClose: closeLiveModal,
+    });
   
   const [
     stats,
@@ -169,9 +186,9 @@ const HomeView: React.FC<HomeViewProps> = ({ setView, onRequestClick }) => {
     <div className="flex flex-col min-h-screen bg-slate-50/50 font-sans text-slate-900 selection:bg-teal-100">
       
       {/* 🛠️ Floating Menu */}
-      <div className="fixed bottom-8 right-8 z-[100] flex flex-col items-end gap-4">
+      <div className="fixed bottom-4 right-4 z-[100] flex flex-col items-end gap-3 sm:bottom-8 sm:right-8">
         {isMenuOpen && (
-          <div className="mb-2 w-64 bg-white/80 backdrop-blur-2xl rounded-2xl border border-white shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-300">
+          <div className="mb-2 w-72 max-w-[calc(100vw-2rem)] bg-white/95 backdrop-blur-2xl rounded-2xl border border-white shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-300">
             <div className="p-6 bg-slate-900/5 border-b border-slate-100">
               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Rawai Services</p>
               <h4 className="text-sm font-bold text-slate-800">ทางเข้าบริการอื่นๆ</h4>
@@ -212,20 +229,19 @@ const HomeView: React.FC<HomeViewProps> = ({ setView, onRequestClick }) => {
     isMenuOpen
       ? "ปิดเมนูบริการอื่น"
       : "เปิดเมนูบริการอื่น"
-  } className="w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all active:scale-90 hover:scale-110 text-white" style={{ background: isMenuOpen ? '#0f172a' : brandGradient }}>
-          {isMenuOpen ? <X className="w-8 h-8" /> : <LayoutGrid className="w-8 h-8" />}
+  } className="relative flex h-14 w-14 items-center justify-center rounded-full text-white shadow-2xl transition-all active:scale-90 hover:scale-105 sm:h-16 sm:w-16" style={{ background: isMenuOpen ? '#0f172a' : brandGradient }}>
+          {isMenuOpen ? <X className="h-6 w-6 sm:h-8 sm:w-8" /> : <LayoutGrid className="h-6 w-6 sm:h-8 sm:w-8" />}
           {!isMenuOpen && <span className="absolute top-0 right-0 w-4 h-4 bg-red-50 border-2 border-white rounded-full animate-ping"></span>}
         </button>
       </div>
 
       {/* --- Section: Hero (🚀 Improved Version with Live Card) --- */}
-     <section className="relative pt-28 pb-40 md:pt-40 md:pb-52 overflow-hidden text-white">
+     <section className="relative overflow-hidden pb-24 pt-20 text-white md:pb-36 md:pt-28">
         <div className="absolute inset-0 z-0">
           <div 
-            className="absolute inset-0 bg-cover bg-center parallax-bg"
+            className="home-hero-bg absolute inset-0 bg-cover bg-center"
             style={{ 
-              backgroundImage: `linear-gradient(to bottom, rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.98), #f8fafc), url('/Untitled design (12).png')`,
-              backgroundAttachment: 'fixed',
+              backgroundImage: `linear-gradient(to bottom, rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.98), #f8fafc), url('/rawai-cctv-hero.webp')`,
               backgroundColor: '#0f172a'
             }}
           ></div>
@@ -238,7 +254,7 @@ const HomeView: React.FC<HomeViewProps> = ({ setView, onRequestClick }) => {
           <div className="lg:col-span-5 text-left animate-in fade-in slide-in-from-left-12 duration-1000">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-emerald-300 text-[9px] md:text-xs font-bold uppercase tracking-widest mb-6 shadow-2xl">
               <Zap className="w-4 h-4 text-emerald-400 fill-emerald-400" />
-              <span>Smart CCTV Portal • 2026</span>
+              <span>Smart CCTV Portal</span>
             </div>
 
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tighter leading-[0.95] mb-6 drop-shadow-2xl">
@@ -254,7 +270,8 @@ const HomeView: React.FC<HomeViewProps> = ({ setView, onRequestClick }) => {
             </p>
 
             <div className="flex flex-col gap-4">
-              <button 
+              <button
+                type="button"
                 onClick={onRequestClick} 
                 className="group relative w-full px-8 py-4 rounded-2xl text-white font-bold text-lg shadow-2xl transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-3 overflow-hidden" 
                 style={{ background: brandGradient }}
@@ -262,11 +279,20 @@ const HomeView: React.FC<HomeViewProps> = ({ setView, onRequestClick }) => {
                 <Camera className="w-6 h-6" />
                 <span>ยื่นคำร้องออนไลน์</span>
               </button>
-              <button 
+              <button
+                type="button"
                 onClick={() => setView('track')} 
                 className="w-full px-8 py-4 rounded-2xl bg-white/10 backdrop-blur-xl text-white font-bold text-lg border border-white/20 shadow-xl transition-all hover:bg-white/20"
               >
                 <span>ติดตามสถานะคำร้อง</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setView('live-cameras')}
+                className="flex w-full items-center justify-center gap-3 rounded-2xl border border-emerald-300/30 bg-emerald-400/10 px-8 py-4 text-base font-bold text-emerald-100 shadow-xl backdrop-blur-xl transition-all hover:bg-emerald-400/20"
+              >
+                <Radio className="h-5 w-5" />
+                <span>ดูกล้องออนไลน์สาธารณะ</span>
               </button>
             </div>
           </div>
@@ -277,7 +303,7 @@ const HomeView: React.FC<HomeViewProps> = ({ setView, onRequestClick }) => {
             <div className="relative p-2.5 bg-white/10 backdrop-blur-2xl rounded-3xl border border-white/20 shadow-[0_45px_100px_-20px_rgba(0,0,0,0.6)] overflow-hidden transition-all group-hover:shadow-[0_45px_100px_-10px_rgba(16,185,129,0.3)] group-hover:scale-[1.01]">
               
               {/* Live Badge แบบใหม่ */}
-              <div className="absolute top-8 left-8 z-20 flex items-center gap-2.5 px-4 py-2 bg-red-600 rounded-full text-white text-xs font-bold uppercase tracking-wide shadow-2xl">
+              <div className="absolute left-4 top-4 z-20 flex items-center gap-2 rounded-full bg-red-600 px-3 py-1.5 text-[9px] font-bold uppercase tracking-wide text-white shadow-2xl sm:left-8 sm:top-8 sm:px-4 sm:py-2 sm:text-xs">
                 <div className="w-2.5 h-2.5 bg-white rounded-full animate-ping"></div>
                 <Radio className="w-4 h-4" />
                 Live Phromthep Cape
@@ -295,18 +321,20 @@ const HomeView: React.FC<HomeViewProps> = ({ setView, onRequestClick }) => {
                 {/* Overlay ป้องกันแสงจ้าเกินไป */}
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent"></div>
                 
-                <div className="absolute bottom-8 left-8 z-20 flex items-end justify-between right-8">
+                <div className="absolute bottom-4 left-4 right-4 z-20 flex items-end justify-between gap-3 sm:bottom-8 sm:left-8 sm:right-8">
                   <div>
-                    <p className="text-white text-xl font-bold tracking-tight">Promthep Cape, Phuket</p>
-                    <p className="text-emerald-400 text-xs font-bold uppercase tracking-widest">Real-time Monitoring System</p>
+                    <p className="text-sm font-bold tracking-tight text-white sm:text-xl">Promthep Cape, Phuket</p>
+                    <p className="mt-0.5 hidden text-xs font-bold uppercase tracking-widest text-emerald-400 sm:block">Real-time Monitoring System</p>
                   </div>
                   
                   {/* ปุ่ม Maximize ที่ดูเด่นขึ้น */}
-                  <button 
+                  <button
+                    type="button"
                     onClick={() => setShowLiveModal(true)}
-                    className="w-14 h-14 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-2xl transition-all hover:bg-emerald-400 hover:rotate-6 active:scale-90"
+                    aria-label="ขยายกล้องสดแหลมพรหมเทพ"
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-2xl transition-all hover:bg-emerald-400 active:scale-90 sm:h-14 sm:w-14 sm:rounded-2xl"
                   >
-                    <Maximize2 className="w-7 h-7" />
+                    <Maximize2 className="h-5 w-5 sm:h-7 sm:w-7" aria-hidden="true" />
                   </button>
                 </div>
               </div>
@@ -316,19 +344,19 @@ const HomeView: React.FC<HomeViewProps> = ({ setView, onRequestClick }) => {
         </div>
 
         {/* 📊 Horizontal Stats Overlay (Bottom of Banner) */}
-        <div className="relative z-10 max-w-4xl mx-auto px-6 mt-20 grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="relative z-10 mx-auto mt-12 grid max-w-4xl grid-cols-1 gap-3 px-6 sm:grid-cols-3 md:mt-16">
           <div className="bg-white/5 backdrop-blur-md border border-white/10 p-4 rounded-3xl">
-            <p className="text-[15px] text-emerald-300 font-bold uppercase tracking-widest mb-1">จำนวนคำร้องทั้งหมด</p>
-            <p className="text-2xl font-bold text-white">{stats.total.toLocaleString()}</p>
+            <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-emerald-300">จำนวนคำร้องทั้งหมด</p>
+            {statsLoading ? <div className="mt-2 h-7 w-16 animate-pulse rounded-lg bg-white/10" /> : <p className="text-2xl font-bold text-white">{stats.total.toLocaleString('th-TH')}</p>}
           </div>
           <div className="bg-white/5 backdrop-blur-md border border-white/10 p-4 rounded-3xl">
-            <p className="text-[15px] text-emerald-300 font-bold uppercase tracking-widest mb-1">อัตราการดำเนินการ</p>
-            <p className="text-2xl font-bold text-white">{stats.successRate}%</p>
+            <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-emerald-300">อัตราการดำเนินการสำเร็จ</p>
+            {statsLoading ? <div className="mt-2 h-7 w-16 animate-pulse rounded-lg bg-white/10" /> : <p className="text-2xl font-bold text-white">{stats.successRate}%</p>}
           </div>
           
           <div className="bg-white/5 backdrop-blur-md border border-white/10 p-4 rounded-3xl">
-            <p className="text-[15px] text-emerald-300 font-bold uppercase tracking-widest mb-1">คำร้องที่รอดำเนินการ</p>
-            <p className="text-2xl font-bold text-white">{stats.pending.toLocaleString()}</p>
+            <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-emerald-300">คำร้องที่รอตรวจสอบ</p>
+            {statsLoading ? <div className="mt-2 h-7 w-16 animate-pulse rounded-lg bg-white/10" /> : <p className="text-2xl font-bold text-white">{stats.pending.toLocaleString('th-TH')}</p>}
           </div>
         </div>
       </section>
@@ -336,24 +364,60 @@ const HomeView: React.FC<HomeViewProps> = ({ setView, onRequestClick }) => {
       {/* --- 🎬 Live Full Modal (Popup) --- */}
       {showLiveModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 md:p-12 bg-slate-900/95 backdrop-blur-xl">
-          <button 
-            onClick={() => setShowLiveModal(false)}
+          <div aria-hidden="true" onClick={closeLiveModal} className="absolute inset-0" />
+          <div ref={liveDialogRef} role="dialog" aria-modal="true" aria-labelledby="live-camera-title" tabIndex={-1} className="relative z-10 w-full max-w-6xl outline-none">
+          <button
+            type="button"
+            onClick={closeLiveModal}
+            aria-label="ปิดกล้องสด"
             className="absolute top-6 right-6 w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all"
           >
-            <X className="w-6 h-6" />
+            <X className="w-6 h-6" aria-hidden="true" />
           </button>
-          <div className="w-full max-w-6xl aspect-video rounded-2xl overflow-hidden shadow-2xl border border-white/10">
+          <h2 id="live-camera-title" className="sr-only">กล้องสดแหลมพรหมเทพ</h2>
+          <div className="aspect-video w-full overflow-hidden rounded-2xl border border-white/10 shadow-2xl">
             <iframe 
               className="w-full h-full" 
               src={PROMTHEP_LIVE_URL.replace("controls=0", "controls=1")}
               title="Full Live Phromthep"
               allow="autoplay; encrypted-media; fullscreen"
+              allowFullScreen
             ></iframe>
+          </div>
           </div>
         </div>
       )}
 
       {/* --- Existing Sections Below --- */}
+      <section aria-labelledby="service-steps-title" className="border-b border-slate-100 bg-white py-16 sm:py-20">
+        <div className="mx-auto max-w-6xl px-6">
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-600">Simple process</p>
+            <h2 id="service-steps-title" className="mt-3 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">ยื่นคำร้องออนไลน์ได้ใน 3 ขั้นตอน</h2>
+            <p className="mt-3 text-sm leading-relaxed text-slate-500">กรอกข้อมูลครั้งเดียว ติดตามสถานะได้ด้วยรหัสส่วนตัว และรับผลตามช่องทางที่เลือก</p>
+          </div>
+          <ol className="mt-10 grid gap-4 md:grid-cols-3">
+            {[
+              { title: 'ยื่นคำร้องและแนบเอกสาร', text: 'ระบุวัน เวลา จุดเกิดเหตุ และแนบเอกสารที่จำเป็น', icon: FileCheck2, tone: 'bg-blue-50 text-blue-700' },
+              { title: 'เจ้าหน้าที่ตรวจสอบ', text: 'ตรวจเอกสาร ระบุกล้อง และค้นหาภาพตามช่วงเวลาที่แจ้ง', icon: SearchCheck, tone: 'bg-indigo-50 text-indigo-700' },
+              { title: 'ติดตามและรับผล', text: 'ใช้รหัสติดตามเพื่อตรวจความคืบหน้าและอ่านข้อความจากเจ้าหน้าที่', icon: CheckCircle2, tone: 'bg-emerald-50 text-emerald-700' },
+            ].map((step, index) => {
+              const StepIcon = step.icon;
+              return (
+                <li key={step.title} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <div className="flex items-start justify-between gap-4">
+                    <span className={`flex h-12 w-12 items-center justify-center rounded-2xl ${step.tone}`}><StepIcon className="h-5 w-5" aria-hidden="true" /></span>
+                    <span className="font-mono text-xs font-bold text-slate-300">0{index + 1}</span>
+                  </div>
+                  <h3 className="mt-5 font-bold text-slate-900">{step.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-500">{step.text}</p>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+      </section>
+
       <section className="py-24 bg-slate-50/50 border-y border-slate-100">
         <div className="max-w-6xl mx-auto px-6 mb-20">
   <AccidentMap
@@ -384,10 +448,6 @@ const HomeView: React.FC<HomeViewProps> = ({ setView, onRequestClick }) => {
               </div>
             </div>
 
-            <button onClick={() => setView('admin-login')} className="flex items-center gap-3 px-8 py-4 bg-white border border-slate-200 text-slate-500 hover:text-slate-900 rounded-2xl transition-all font-bold text-sm mx-auto shadow-sm hover:shadow-md group">
-              <Lock className="w-4 h-4 group-hover:text-blue-600" />เจ้าหน้าที่ เข้าสู่ระบบ
-            </button>
-            <p className="mt-6 text-[10px] text-slate-300 font-bold uppercase tracking-widest">Copyright © 2026 Rawai Municipality CCTV Service Portal</p>
           </div>
         </div>
       </section>

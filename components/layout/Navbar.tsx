@@ -4,6 +4,7 @@ import React from 'react';
 import {
   LayoutGrid,
   Search,
+  Video,
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -18,7 +19,7 @@ const Navbar: React.FC<NavbarProps> = ({ view, setView, onRequestClick }) => {
   const brandGradient = "linear-gradient(90deg, hsla(160, 50%, 51%, 1) 0%, hsla(247, 60%, 21%, 1) 100%)";
 
   return (
-    <nav className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-xl border-b border-slate-200/60 transition-all duration-300">
+    <nav aria-label="เมนูหลัก" className="sticky top-0 z-50 w-full bg-white/90 backdrop-blur-xl border-b border-slate-200/60 transition-all duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           
@@ -56,11 +57,68 @@ const Navbar: React.FC<NavbarProps> = ({ view, setView, onRequestClick }) => {
           </button>
           
           {/* --- Navigation & Admin Login --- */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 md:gap-4">
+            <div className="flex items-center gap-1.5 md:hidden">
+              <button
+                type="button"
+                onClick={() => setView('live-cameras')}
+                aria-label="ดูกล้องออนไลน์"
+                aria-current={view === 'live-cameras' ? 'page' : undefined}
+                className={`flex h-11 w-11 items-center justify-center rounded-xl border transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-100 ${
+                  view === 'live-cameras'
+                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                    : 'border-slate-200 bg-white text-slate-500'
+                }`}
+              >
+                <Video className="h-5 w-5" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                onClick={onRequestClick}
+                aria-label="ยื่นคำร้อง"
+                aria-current={view === 'request' ? 'page' : undefined}
+                className={`flex h-11 w-11 items-center justify-center rounded-xl border transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-teal-100 ${
+                  view === 'request'
+                    ? 'border-teal-200 bg-teal-50 text-teal-700'
+                    : 'border-slate-200 bg-white text-slate-500'
+                }`}
+              >
+                <LayoutGrid className="h-5 w-5" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setView('track')}
+                aria-label="ติดตามสถานะคำร้อง"
+                aria-current={view === 'track' ? 'page' : undefined}
+                className={`flex h-11 w-11 items-center justify-center rounded-xl border transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100 ${
+                  view === 'track'
+                    ? 'border-blue-200 bg-blue-50 text-blue-800'
+                    : 'border-slate-200 bg-white text-slate-500'
+                }`}
+              >
+                <Search className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </div>
+
             {/* Desktop Navigation (Segmented Control Style) */}
             <div className="hidden md:flex items-center gap-1.5 p-1.5 bg-slate-100/60 rounded-2xl border border-slate-200/50">
+              <button
+                type="button"
+                onClick={() => setView('live-cameras')}
+                aria-current={view === 'live-cameras' ? 'page' : undefined}
+                className={`relative flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold transition-all duration-300 ${
+                  view === 'live-cameras'
+                    ? 'bg-white text-slate-900 shadow-sm shadow-slate-200/50 ring-1 ring-black/5'
+                    : 'text-slate-500 hover:bg-white/50 hover:text-slate-700'
+                }`}
+              >
+                <Video className={`h-4 w-4 ${view === 'live-cameras' ? 'text-emerald-600' : 'text-slate-400'}`} />
+                กล้องออนไลน์
+              </button>
               <button 
+                type="button"
                 onClick={onRequestClick}
+                aria-current={view === 'request' ? 'page' : undefined}
                 className={`
                   relative px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2
                   ${view === 'request' 
@@ -74,7 +132,9 @@ const Navbar: React.FC<NavbarProps> = ({ view, setView, onRequestClick }) => {
               </button>
 
               <button 
+                type="button"
                 onClick={() => setView('track')}
+                aria-current={view === 'track' ? 'page' : undefined}
                 className={`
                   relative px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2
                   ${view === 'track' 

@@ -13,6 +13,8 @@ import {
   AlertCircle,
   ArrowLeft,
   Building2,
+  Eye,
+  EyeOff,
   Loader2,
   Lock,
   Mail,
@@ -96,6 +98,11 @@ const AdminLoginView:
 
     const [loading, setLoading] =
       useState(false);
+
+    const [
+      showPassword,
+      setShowPassword,
+    ] = useState(false);
 
     const [error, setError] =
       useState("");
@@ -277,8 +284,9 @@ const AdminLoginView:
             <div className="space-y-6 p-7 md:p-9">
               {error && (
                 <div
+                  id="admin-login-error"
                   role="alert"
-                  aria-live="polite"
+                  aria-live="assertive"
                   className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700"
                 >
                   <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
@@ -322,6 +330,12 @@ const AdminLoginView:
               </div>
 
               <form
+                aria-busy={loading}
+                aria-describedby={
+                  error
+                    ? "admin-login-error"
+                    : undefined
+                }
                 onSubmit={(event) => {
                   void handleEmailLogin(
                     event,
@@ -346,16 +360,20 @@ const AdminLoginView:
                       required
                       autoComplete="username"
                       inputMode="email"
+                      aria-invalid={
+                        Boolean(error)
+                      }
                       value={email}
                       disabled={loading}
                       onChange={(
                         event,
-                      ) =>
+                      ) => {
                         setEmail(
                           event.target
                             .value,
-                        )
-                      }
+                        );
+                        setError("");
+                      }}
                       placeholder="staff@example.com"
                       className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-4 pl-12 pr-5 text-sm font-semibold text-slate-800 outline-none transition placeholder:text-slate-300 focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-50 disabled:opacity-60"
                     />
@@ -375,23 +393,63 @@ const AdminLoginView:
 
                     <input
                       id="admin-password"
-                      type="password"
+                      type={
+                        showPassword
+                          ? "text"
+                          : "password"
+                      }
                       required
                       minLength={6}
                       autoComplete="current-password"
+                      aria-invalid={
+                        Boolean(error)
+                      }
                       value={password}
                       disabled={loading}
                       onChange={(
                         event,
-                      ) =>
+                      ) => {
                         setPassword(
                           event.target
                             .value,
+                        );
+                        setError("");
+                      }}
+                      placeholder="••••••••"
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-4 pl-12 pr-14 text-sm font-semibold tracking-widest text-slate-800 outline-none transition placeholder:text-slate-300 focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-50 disabled:opacity-60"
+                    />
+
+                    <button
+                      type="button"
+                      disabled={loading}
+                      onClick={() =>
+                        setShowPassword(
+                          (visible) =>
+                            !visible,
                         )
                       }
-                      placeholder="••••••••"
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-4 pl-12 pr-5 text-sm font-semibold tracking-widest text-slate-800 outline-none transition placeholder:text-slate-300 focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-50 disabled:opacity-60"
-                    />
+                      aria-label={
+                        showPassword
+                          ? "ซ่อนรหัสผ่าน"
+                          : "แสดงรหัสผ่าน"
+                      }
+                      aria-pressed={
+                        showPassword
+                      }
+                      className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {showPassword ? (
+                        <EyeOff
+                          aria-hidden="true"
+                          className="h-5 w-5"
+                        />
+                      ) : (
+                        <Eye
+                          aria-hidden="true"
+                          className="h-5 w-5"
+                        />
+                      )}
+                    </button>
                   </div>
                 </div>
 

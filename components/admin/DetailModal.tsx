@@ -34,6 +34,9 @@ import {
   useModalAccessibility,
 } from "../../hooks/useModalAccessibility";
 import {
+  AdminStatusActions,
+} from "./AdminStatusActions";
+import {
   ACCIDENT_SUBTYPE_TH,
   EVENT_TYPE_TH,
   STATUS_TH,
@@ -298,8 +301,21 @@ const [
       setErrorMessage,
     ] = useState("");
 
+    const requestId =
+      data?.id ?? null;
+    const requestStatus =
+      data?.status ?? "";
+    const requestAdminNote =
+      data?.adminNote ?? "";
+
     const mapContainerRef =
       useRef<HTMLDivElement>(null);
+
+    const adminNoteRef =
+      useRef<HTMLTextAreaElement>(null);
+
+    const activeRequestIdRef =
+      useRef<string | null>(null);
 
    const mapInstanceRef =
   useRef<DetailMapInstance | null>(
@@ -307,16 +323,25 @@ const [
   );
 
     useEffect(() => {
-      if (!data) {
+      if (!requestId) {
+        activeRequestIdRef.current =
+          null;
         setTempStatus("");
         setAdminNote("");
         return;
       }
 
+      const isNewRequest =
+        activeRequestIdRef.current !==
+        requestId;
+
+      activeRequestIdRef.current =
+        requestId;
+
 const reusableStatus =
   ADMIN_STATUSES.find(
     (status) =>
-      status === data.status,
+      status === requestStatus,
   );
 
 setTempStatus(
@@ -324,12 +349,18 @@ setTempStatus(
 );
 
       setAdminNote(
-        data.adminNote ?? "",
+        requestAdminNote,
       );
 
-      setSuccessMessage("");
-      setErrorMessage("");
-    }, [data]);
+      if (isNewRequest) {
+        setSuccessMessage("");
+        setErrorMessage("");
+      }
+    }, [
+      requestId,
+      requestStatus,
+      requestAdminNote,
+    ]);
 
     useEffect(() => {
     if (
@@ -510,6 +541,42 @@ let cancelled = false;
     const CurrentStatusIcon =
       currentStatus.icon;
 
+    const storedStatus =
+      ADMIN_STATUSES.find(
+        (status) =>
+          status === data.status,
+      ) ?? "";
+
+    const requiresReason =
+      tempStatus ===
+        "waiting_for_information" ||
+      tempStatus === "rejected";
+
+    const hasUnsavedChanges =
+      tempStatus !== storedStatus ||
+      adminNote.trim() !==
+        (data.adminNote ?? "").trim();
+
+    const handleStatusSelect = (
+      status: AdminRequestStatus,
+    ) => {
+      setTempStatus(status);
+      setErrorMessage("");
+      setSuccessMessage("");
+
+      if (
+        status ===
+          "waiting_for_information" ||
+        status === "rejected"
+      ) {
+        window.requestAnimationFrame(
+          () => {
+            adminNoteRef.current?.focus();
+          },
+        );
+      }
+    };
+
     const identityLabel =
       data.applicantType ===
       "FOREIGNER"
@@ -672,9 +739,9 @@ let cancelled = false;
           aria-modal="true"
           aria-labelledby="request-detail-title"
           tabIndex={-1}
-          className="relative z-10 flex max-h-[96vh] w-full max-w-7xl flex-col overflow-hidden rounded-[28px] border border-white/20 bg-white shadow-2xl outline-none"
+          className="relative z-10 flex max-h-[calc(100dvh-1rem)] w-full max-w-7xl flex-col overflow-hidden rounded-[28px] border border-white/20 bg-white shadow-2xl outline-none md:max-h-[calc(100dvh-4rem)]"
         >
-          <header className="flex items-start justify-between border-b border-slate-100 bg-white px-5 py-5 md:px-8">
+          <header className="z-20 flex shrink-0 items-start justify-between border-b border-slate-100 bg-white px-5 py-5 md:px-8">
             <div>
               <div className="mb-2 flex flex-wrap items-center gap-2">
                 <span className="rounded-full bg-blue-50 px-3 py-1 font-mono text-[10px] font-bold text-blue-800">
@@ -722,9 +789,9 @@ let cancelled = false;
             </button>
           </header>
 
-          <div className="overflow-y-auto">
-            <div className="grid grid-cols-1 gap-8 p-5 md:p-8 xl:grid-cols-[minmax(0,1fr)_360px]">
-              <main className="space-y-8">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]">
+            <div className="grid grid-cols-1 items-start gap-8 p-5 md:p-8 xl:grid-cols-[minmax(0,1fr)_360px]">
+              <main className="order-2 space-y-8 xl:order-none">
                 <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                   <section className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5 md:p-6">
                     <h3 className="mb-5 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-blue-700">
@@ -971,11 +1038,23 @@ let cancelled = false;
                 </section>
               </main>
 
-              <aside className="space-y-6">
-                <section className="rounded-3xl bg-slate-950 p-6 text-white shadow-xl">
-                  <h3 className="mb-6 text-xs font-bold uppercase tracking-[0.18em] text-blue-400">
-                    Admin Control
-                  </h3>
+              <aside className="contents xl:sticky xl:top-0 xl:block xl:max-h-[calc(100dvh-12rem)] xl:self-start xl:space-y-6 xl:overflow-y-auto xl:overscroll-contain xl:pr-1 xl:[scrollbar-gutter:stable] xl:[scrollbar-width:thin]">
+                <section className="order-1 rounded-3xl bg-slate-950 p-5 text-white shadow-xl 2xl:p-6">
+                  <div className="mb-6 flex items-center justify-between gap-3">
+                    <div>
+                      <h3 className="text-xs font-bold uppercase tracking-[0.18em] text-blue-400">
+                        ดำเนินการคำร้อง
+                      </h3>
+                      <p className="mt-1 text-[9px] text-slate-500">
+                        เลือกสถานะ เติมหมายเหตุ แล้วบันทึก
+                      </p>
+                    </div>
+                    {hasUnsavedChanges && (
+                      <span className="shrink-0 rounded-full border border-amber-300/20 bg-amber-300/10 px-2 py-1 text-[8px] font-bold text-amber-200">
+                        ยังไม่บันทึก
+                      </span>
+                    )}
+                  </div>
 
                   {data.status ===
                     "processing" && (
@@ -985,7 +1064,14 @@ let cancelled = false;
                     </div>
                   )}
 
-                  <div className="space-y-3">
+                  <AdminStatusActions
+                    currentStatus={data.status}
+                    selectedStatus={tempStatus}
+                    disabled={isUpdating}
+                    onSelect={handleStatusSelect}
+                  />
+
+                  <div className="mt-5 space-y-3">
                     <label
                       htmlFor="admin-status"
                       className="block text-[10px] font-bold uppercase tracking-wide text-slate-400"
@@ -1008,9 +1094,13 @@ let cancelled = false;
         selectedStatus,
     );
 
-  setTempStatus(
-    validStatus ?? "",
-  );
+  if (validStatus) {
+    handleStatusSelect(
+      validStatus,
+    );
+  } else {
+    setTempStatus("");
+  }
 }}  
                         disabled={isUpdating}
                         className="w-full appearance-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 pr-10 text-xs font-semibold text-white outline-none focus:border-blue-400"
@@ -1098,6 +1188,8 @@ let cancelled = false;
                     </select>
 
                     <textarea
+                      ref={adminNoteRef}
+                      id="admin-note"
                       rows={6}
                       maxLength={2000}
                       value={adminNote}
@@ -1108,13 +1200,27 @@ let cancelled = false;
                         )
                       }
                       placeholder="หมายเหตุสำหรับประชาชน..."
-                      className="w-full resize-y rounded-xl border border-white/10 bg-white/5 p-4 text-xs leading-relaxed text-white outline-none placeholder:text-slate-600 focus:border-blue-400"
+                      aria-describedby={requiresReason ? "admin-note-requirement admin-note-count" : "admin-note-count"}
+                      className="min-h-32 w-full resize-none rounded-xl border border-white/10 bg-white/5 p-4 text-xs leading-relaxed text-white outline-none placeholder:text-slate-600 focus:border-blue-400"
                     />
 
-                    <p className="text-right text-[9px] text-slate-500">
-                      {adminNote.length}
-                      /2,000
-                    </p>
+                    <div className="flex items-start justify-between gap-3">
+                      <p
+                        id="admin-note-requirement"
+                        className={`text-[9px] leading-relaxed ${
+                          requiresReason
+                            ? "text-amber-200"
+                            : "text-slate-500"
+                        }`}
+                      >
+                        {requiresReason
+                          ? "สถานะนี้ต้องระบุเหตุผลอย่างน้อย 5 ตัวอักษร"
+                          : "หมายเหตุจะแสดงในประวัติการดำเนินงาน"}
+                      </p>
+                      <p id="admin-note-count" className="shrink-0 text-right text-[9px] text-slate-500">
+                        {adminNote.length}/2,000
+                      </p>
+                    </div>
                   </div>
 
                   {errorMessage && (
@@ -1144,7 +1250,8 @@ let cancelled = false;
                     }}
                     disabled={
                       isUpdating ||
-                      !tempStatus
+                      !tempStatus ||
+                      !hasUnsavedChanges
                     }
                     className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-4 text-xs font-bold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
                   >
@@ -1156,11 +1263,13 @@ let cancelled = false;
 
                     {isUpdating
                       ? "กำลังบันทึก..."
-                      : "บันทึกการอัปเดต"}
+                      : hasUnsavedChanges
+                        ? "บันทึกการอัปเดต"
+                        : "ข้อมูลเป็นปัจจุบันแล้ว"}
                   </button>
                 </section>
 
-                <section className="rounded-3xl border border-slate-200 bg-white p-6">
+                <section className="order-3 rounded-3xl border border-slate-200 bg-white p-6">
                   <h3 className="mb-6 text-xs font-bold uppercase tracking-wide text-slate-500">
                     ประวัติการดำเนินการ
                   </h3>

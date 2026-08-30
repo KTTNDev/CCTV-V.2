@@ -21,3 +21,7 @@ export {
 export {
   processNotificationOutbox,
 } from "./functions/process-notification-outbox";
+
+export {
+  manageCamera,
+} from "./functions/manage-camera";

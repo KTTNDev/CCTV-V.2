@@ -51,10 +51,12 @@ import { FormDataState, FileState } from '../types';
 
 // ส่วนประกอบ UI ปกติ
 import ConsentModal from '../components/ui/ConsentModal';
+import MascotHelp from '../components/ui/MascotHelp';
 import HomeView from '../components/views/HomeView';
 import RequestView from '../components/views/RequestView';
 import SuccessView from '../components/views/SuccessView';
 import TrackView from '../components/views/TrackView';
+import LiveCamerasView from '../components/views/LiveCamerasView';
 import Footer from '../components/layout/Footer';
 import Navbar from '../components/layout/Navbar';
 
@@ -66,7 +68,10 @@ type SubmissionResult =
   Pick<
     CreateRequestResult,
     'trackingToken'
-  >;
+  > & {
+    deliveryMethod:
+      DeliveryMethod;
+  };
 
 
 
@@ -471,6 +476,8 @@ const [
         ...finalized,
         trackingToken:
           draft.trackingToken,
+        deliveryMethod:
+          payload.deliveryMethod,
       });
 
       setView('success');
@@ -632,6 +639,12 @@ if (!authChecked) {
 }
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-800 flex flex-col selection:bg-blue-100">
+      <a
+        href="#main-content"
+        className="fixed left-4 top-4 z-[200] -translate-y-24 rounded-xl bg-slate-950 px-4 py-3 text-sm font-bold text-white shadow-xl transition focus:translate-y-0 focus:outline-none focus:ring-4 focus:ring-emerald-300"
+      >
+        ข้ามไปยังเนื้อหาหลัก
+      </a>
       
       {/* ซ่อน Navbar ปกติเมื่ออยู่ในส่วนของเจ้าหน้าที่ เพื่อความชัดเจนในการทำงาน */}
       {!['admin-login', 'admin-dashboard'].includes(view) && (
@@ -649,7 +662,11 @@ if (!authChecked) {
         />
       )}
 
-      <main className="flex-grow">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="flex-grow outline-none"
+      >
         {/* หน้าหลักประชาชน */}
         {view === 'home' && (
           <HomeView setView={setView} onRequestClick={handleRequestClick} />
@@ -695,6 +712,13 @@ if (!authChecked) {
 />
         )}
 
+        {/* กล้องออนไลน์สาธารณะ */}
+        {view === 'live-cameras' && (
+          <LiveCamerasView
+            setView={setView}
+          />
+        )}
+
         {/* ----------------------------------------------------
             ✅ ระบบเจ้าหน้าที่ (ADMIN / STAFF SYSTEM)
             ---------------------------------------------------- */}
@@ -714,7 +738,21 @@ if (!authChecked) {
       </main>
 
       {/* ซ่อน Footer ปกติเมื่ออยู่ในโหมดเจ้าหน้าที่ */}
-      {!['admin-login', 'admin-dashboard'].includes(view) && <Footer />}
+      {!['admin-login', 'admin-dashboard'].includes(view) && (
+        <Footer
+          onAdminClick={() =>
+            setView('admin-login')
+          }
+        />
+      )}
+
+      {!['admin-login', 'admin-dashboard'].includes(view) && (
+        <MascotHelp
+          view={view}
+          onNavigate={setView}
+          onRequestClick={handleRequestClick}
+        />
+      )}
     </div>
   );
 };

@@ -5,13 +5,17 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
+    "preview": "firebase emulators:start --only hosting",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "check:env": "node scripts/check-production-env.mjs",
+    "check:output": "node scripts/check-static-output.mjs",
+    "check": "npm run typecheck && npm run lint && npm run build && npm run check:output && npm --prefix functions test",
+    "check:production": "npm run check:env && npm run check"
   },
   "dependencies": {
     "browser-image-compression": "^2.0.2",
     "firebase": "^12.9.0",
-    "html2canvas": "^1.4.1",
     "jspdf": "^4.2.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.568.0",

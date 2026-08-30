@@ -6,6 +6,10 @@ import {
 } from "firebase-functions/v2/https";
 
 import {
+  ALLOWED_CORS_ORIGINS,
+  FUNCTION_REGION,
+} from "../config/runtime";
+import {
   requireAppCheck,
   requireRequestManager,
 } from "../lib/auth";
@@ -36,7 +40,7 @@ export const updateRequest =
   onRequest(
     {
       region:
-        "asia-southeast1",
+        FUNCTION_REGION,
 
       memory: "256MiB",
 
@@ -48,12 +52,8 @@ export const updateRequest =
 
       concurrency: 40,
 
-      cors: [
-        /^http:\/\/localhost(?::\d+)?$/,
-        /^http:\/\/127\.0\.0\.1(?::\d+)?$/,
-        "https://db-rawaicctv.web.app",
-        "https://db-rawaicctv.firebaseapp.com",
-      ],
+      cors:
+        ALLOWED_CORS_ORIGINS,
 
       secrets: [
         rateLimitHashKey,

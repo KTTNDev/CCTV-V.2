@@ -6,6 +6,7 @@ exports.isAllowlistedAdminEmail = isAllowlistedAdminEmail;
 exports.requireAuthenticatedUser = requireAuthenticatedUser;
 exports.requireStaffRole = requireStaffRole;
 exports.requireRequestManager = requireRequestManager;
+exports.requireAdministrator = requireAdministrator;
 exports.requireAppCheck = requireAppCheck;
 const app_check_1 = require("firebase-admin/app-check");
 const firebase_admin_1 = require("./firebase-admin");
@@ -133,6 +134,26 @@ async function requireRequestManager(request) {
             status: 403,
             code: "FORBIDDEN",
             message: "บัญชีนี้ไม่มีสิทธิ์แก้ไขคำร้อง",
+        });
+    }
+    return user;
+}
+/**
+ * ใช้กับการตั้งค่าระบบและข้อมูลโครงสร้างพื้นฐานของกล้อง
+ * จำกัดเฉพาะ role=admin หรือบัญชี Admin เดิมใน allowlist เท่านั้น
+ */
+async function requireAdministrator(request) {
+    const user = await requireAuthenticatedUser(request);
+    const hasAdminRole = user.role === "admin";
+    const hasLegacyAdminEmail = user.emailVerified &&
+        isAllowlistedAdminEmail(user.email);
+    if (user.isAnonymous ||
+        (!hasAdminRole &&
+            !hasLegacyAdminEmail)) {
+        throw new http_error_1.HttpError({
+            status: 403,
+            code: "FORBIDDEN",
+            message: "บัญชีนี้ไม่มีสิทธิ์จัดการข้อมูลกล้อง",
         });
     }
     return user;

@@ -22,17 +22,46 @@
   --font-sans: "Noto Sans Thai", "Leelawadee UI", Tahoma, Arial, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: light;
+  scroll-behavior: smooth;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: "Noto Sans Thai", "Leelawadee UI", Tahoma, Arial, sans-serif;
+}
+
+::selection {
+  background: rgb(167 243 208);
+  color: rgb(15 41 66);
+}
+
+:focus-visible {
+  outline: 3px solid rgb(16 185 129);
+  outline-offset: 3px;
+}
+
+.home-hero-bg {
+  background-attachment: scroll;
+}
+
+@media (min-width: 768px) and (prefers-reduced-motion: no-preference) {
+  .home-hero-bg {
+    background-attachment: fixed;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* ---------------------------------------------------------------
@@ -63,4 +92,51 @@ body {
 }
 .btn-primary:hover {
   filter: brightness(0.93);
+}
+
+@keyframes mascot-help-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-0.5deg);
+  }
+  45% {
+    transform: translateY(-5px) rotate(0.8deg);
+  }
+}
+
+@keyframes mascot-help-shadow {
+  0%,
+  100% {
+    opacity: 0.16;
+    transform: translateX(-50%) scaleX(1);
+  }
+  45% {
+    opacity: 0.1;
+    transform: translateX(-50%) scaleX(0.86);
+  }
+}
+
+@keyframes mascot-help-pop {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.mascot-help-float {
+  animation: mascot-help-float 4.2s ease-in-out infinite;
+  transform-origin: 50% 90%;
+}
+
+.mascot-help-shadow {
+  animation: mascot-help-shadow 4.2s ease-in-out infinite;
+}
+
+.mascot-help-pop {
+  animation: mascot-help-pop 180ms ease-out both;
+  transform-origin: bottom left;
 }

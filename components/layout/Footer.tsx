@@ -1,6 +1,7 @@
 import {
   Building2,
   Clock3,
+  LockKeyhole,
   PhoneCall,
   ShieldCheck,
 } from "lucide-react";
@@ -8,8 +9,14 @@ import {
 const CONTACT_PHONE =
   "076613801";
 
-const Footer = () => (
-  <footer className="border-t border-slate-200 bg-white">
+interface FooterProps {
+  onAdminClick?: () => void;
+}
+
+const Footer = ({
+  onAdminClick,
+}: FooterProps) => (
+  <footer aria-label="ข้อมูลหน่วยงาน" className="relative z-[110] border-t border-slate-200 bg-white">
     <div className="mx-auto max-w-7xl px-5 py-12 sm:px-6 lg:px-8">
       <div className="grid gap-10 lg:grid-cols-[1.35fr_1fr_1fr]">
         <section>
@@ -109,15 +116,28 @@ const Footer = () => (
         </section>
       </div>
 
-      <div className="mt-10 flex flex-col gap-3 border-t border-slate-100 pt-6 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mt-10 flex flex-col gap-4 border-t border-slate-100 pt-6 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
         <p>
           © {new Date().getFullYear()}{" "}
           เทศบาลตำบลราไวย์
         </p>
 
-        <p>
-          ดูแลระบบโดยฝ่ายนโยบายและแผน
-        </p>
+        <div className="flex flex-wrap items-center gap-4">
+          <p>
+            ดูแลระบบโดยฝ่ายนโยบายและแผน
+          </p>
+
+          {onAdminClick && (
+            <button
+              type="button"
+              onClick={onAdminClick}
+              className="inline-flex items-center gap-2 rounded-lg px-2 py-1 font-semibold text-slate-400 transition hover:bg-slate-50 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-100"
+            >
+              <LockKeyhole className="h-3.5 w-3.5" aria-hidden="true" />
+              สำหรับเจ้าหน้าที่
+            </button>
+          )}
+        </div>
       </div>
     </div>
   </footer>

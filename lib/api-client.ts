@@ -207,15 +207,36 @@ async function createRequestHeaders(
       `Bearer ${idToken}`;
   }
 
-  if (appCheck) {
-    const appCheckToken =
-      await getAppCheckToken(
-        appCheck,
-        false,
-      );
+  if (
+    !useFirebaseEmulators &&
+    !appCheck
+  ) {
+    throw new ApiClientError({
+      status: 503,
+      code: "APP_CHECK_NOT_CONFIGURED",
+      message:
+        "ระบบรักษาความปลอดภัยยังไม่พร้อมใช้งาน กรุณาติดต่อเจ้าหน้าที่",
+    });
+  }
 
-    headers["X-Firebase-AppCheck"] =
-      appCheckToken.token;
+  if (appCheck) {
+    try {
+      const appCheckToken =
+        await getAppCheckToken(
+          appCheck,
+          false,
+        );
+
+      headers["X-Firebase-AppCheck"] =
+        appCheckToken.token;
+    } catch {
+      throw new ApiClientError({
+        status: 503,
+        code: "APP_CHECK_UNAVAILABLE",
+        message:
+          "ไม่สามารถยืนยันความปลอดภัยของการเชื่อมต่อได้ กรุณารีเฟรชหน้าแล้วลองอีกครั้ง",
+      });
+    }
   }
 
   return headers;
@@ -474,6 +495,93 @@ export async function updateAdminRequest(
     getEndpoint(
       "/api/admin/requests/update",
       "updateRequest",
+    ),
+    payload,
+    {
+      requireAuthentication: true,
+    },
+  );
+}
+
+export type CameraCategory =
+  | "flood"
+  | "traffic"
+  | "tourism";
+
+export type CameraPublicStatus =
+  | "online"
+  | "offline"
+  | "maintenance";
+
+export type CameraHardwareType =
+  | "fixed"
+  | "ptz"
+  | "lpr"
+  | "thermal"
+  | "other";
+
+export interface CameraPublicData {
+  name: string;
+  shortName: string;
+  description: string;
+  category: CameraCategory;
+  location: string;
+  latitude: number | null;
+  longitude: number | null;
+  streamPath: string;
+  status: CameraPublicStatus;
+  published: boolean;
+  sortOrder: number;
+}
+
+export interface CameraPrivateData {
+  siteCode: string;
+  cameraType: CameraHardwareType;
+  brand: string;
+  model: string;
+  serialNumber: string;
+  assetNumber: string;
+  ipAddress: string;
+  rtspPort: number | null;
+  rtspPath: string;
+  managementUrl: string;
+  nvrChannel: string;
+  resolution: string;
+  direction: string;
+  installationDate: string;
+  responsibleUnit: string;
+  credentialReference: string;
+  technicalNotes: string;
+}
+
+export type ManageCameraPayload =
+  | {
+      action: "upsert";
+      cameraId?: string;
+      publicData: CameraPublicData;
+      privateData: CameraPrivateData;
+    }
+  | {
+      action: "archive";
+      cameraId: string;
+    };
+
+export interface ManageCameraResult {
+  cameraId: string;
+  action:
+    | "created"
+    | "updated"
+    | "archived";
+  updatedAt: string;
+}
+
+export async function manageCamera(
+  payload: ManageCameraPayload,
+): Promise<ManageCameraResult> {
+  return postJson<ManageCameraResult>(
+    getEndpoint(
+      "/api/admin/cameras/manage",
+      "manageCamera",
     ),
     payload,
     {

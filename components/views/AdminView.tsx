@@ -20,6 +20,7 @@ import {
   BarChart3,
   CheckCircle,
   Clock,
+  Cctv,
   FileClock,
   LayoutDashboard,
   Loader2,
@@ -40,6 +41,9 @@ import { db } from "../../lib/firebase";
 import {
   AuditLogModal,
 } from "../admin/AuditLogModal";
+import {
+  CameraManagementModal,
+} from "../admin/CameraManagementModal";
 import { DetailModal } from "../admin/DetailModal";
 import { FilterBar } from "../admin/FilterBar";
 import { MobileCardList } from "../admin/MobileCardList";
@@ -47,6 +51,13 @@ import { Pagination } from "../admin/Pagination";
 import { ReportModal } from "../admin/ReportModal";
 import { RequestTable } from "../admin/RequestTable";
 import { StatsCards } from "../admin/StatsCards";
+import {
+  matchesWorkQueue,
+  WorkQueueBar,
+} from "../admin/WorkQueueBar";
+import type {
+  WorkQueueFilter,
+} from "../admin/WorkQueueBar";
 import {
   EVENT_TYPE_TH,
   STATUS_TH,
@@ -100,6 +111,32 @@ const AdminView: React.FC<AdminViewProps> = ({
     useState("all");
 
   const [
+    workQueueFilter,
+    setWorkQueueFilter,
+  ] = useState<WorkQueueFilter>(
+    "all",
+  );
+
+  const [queueClock, setQueueClock] =
+    useState(0);
+
+  useEffect(() => {
+    const updateClock = () => {
+      setQueueClock(Date.now());
+    };
+
+    updateClock();
+
+    const timer = window.setInterval(
+      updateClock,
+      60_000,
+    );
+
+    return () =>
+      window.clearInterval(timer);
+  }, []);
+
+  const [
     filterEventType,
     setFilterEventType,
   ] = useState("all");
@@ -122,6 +159,10 @@ const [
   showAuditLog,
   setShowAuditLog,
 ] = useState(false);
+  const [
+    showCameraManagement,
+    setShowCameraManagement,
+  ] = useState(false);
   useEffect(() => {
     let isActive = true;
     let normalizationVersion = 0;
@@ -422,6 +463,7 @@ const [
   }, [
     searchQuery,
     filterStatus,
+    workQueueFilter,
     filterEventType,
     startDate,
     endDate,
@@ -438,9 +480,14 @@ const [
       return requests.filter(
         (request) => {
           const matchesStatus =
-            filterStatus === "all" ||
-            request.status ===
-              filterStatus;
+            matchesWorkQueue(
+              request,
+              workQueueFilter,
+              queueClock,
+            ) &&
+            (filterStatus === "all" ||
+              request.status ===
+                filterStatus);
 
           const matchesEventType =
             filterEventType ===
@@ -523,6 +570,8 @@ const [
     }, [
       requests,
       filterStatus,
+      workQueueFilter,
+      queueClock,
       searchQuery,
       filterEventType,
       startDate,
@@ -768,6 +817,18 @@ const [
           </h1>
 
   <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+            <button
+              type="button"
+              onClick={() =>
+                setShowCameraManagement(
+                  true,
+                )
+              }
+              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-600 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800"
+            >
+              <Cctv className="h-4 w-4" />
+              จัดการกล้อง
+            </button>
            <button
   type="button"
   onClick={() =>
@@ -819,13 +880,24 @@ const [
           }}
         />
 
+        <WorkQueueBar
+          requests={requests}
+          selected={workQueueFilter}
+          now={queueClock}
+          onSelect={(filter) => {
+            setWorkQueueFilter(filter);
+            setFilterStatus("all");
+          }}
+        />
+
         <FilterBar
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           filterStatus={filterStatus}
-          setFilterStatus={
-            setFilterStatus
-          }
+          setFilterStatus={(status) => {
+            setFilterStatus(status);
+            setWorkQueueFilter("all");
+          }}
           filterEventType={
             filterEventType
           }
@@ -838,6 +910,8 @@ const [
           setEndDate={setEndDate}
           isFiltering={Boolean(
             searchQuery ||
+              workQueueFilter !==
+                "all" ||
               filterStatus !==
                 "all" ||
               filterEventType !==
@@ -847,6 +921,9 @@ const [
           )}
           clearFilters={() => {
             setSearchQuery("");
+            setWorkQueueFilter(
+              "all",
+            );
             setFilterStatus("all");
             setFilterEventType(
               "all",
@@ -938,6 +1015,16 @@ const [
     setShowAuditLog(false)
   }
 />
+        <CameraManagementModal
+          isOpen={
+            showCameraManagement
+          }
+          onClose={() =>
+            setShowCameraManagement(
+              false,
+            )
+          }
+        />
       </div>
     </div>
   );

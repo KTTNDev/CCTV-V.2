@@ -253,6 +253,43 @@ const hasLegacyAdminEmail =
   return user;
 }
 
+/**
+ * ใช้กับการตั้งค่าระบบและข้อมูลโครงสร้างพื้นฐานของกล้อง
+ * จำกัดเฉพาะ role=admin หรือบัญชี Admin เดิมใน allowlist เท่านั้น
+ */
+export async function requireAdministrator(
+  request: HeaderRequest,
+): Promise<AuthenticatedUser> {
+  const user =
+    await requireAuthenticatedUser(
+      request,
+    );
+
+  const hasAdminRole =
+    user.role === "admin";
+
+  const hasLegacyAdminEmail =
+    user.emailVerified &&
+    isAllowlistedAdminEmail(
+      user.email,
+    );
+
+  if (
+    user.isAnonymous ||
+    (!hasAdminRole &&
+      !hasLegacyAdminEmail)
+  ) {
+    throw new HttpError({
+      status: 403,
+      code: "FORBIDDEN",
+      message:
+        "บัญชีนี้ไม่มีสิทธิ์จัดการข้อมูลกล้อง",
+    });
+  }
+
+  return user;
+}
+
 export async function requireAppCheck(
   request: HeaderRequest,
 ): Promise<void> {

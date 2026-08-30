@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.trackRequest = void 0;
 const params_1 = require("firebase-functions/params");
 const https_1 = require("firebase-functions/v2/https");
+const runtime_1 = require("../config/runtime");
 const auth_1 = require("../lib/auth");
 const http_1 = require("../lib/http");
 const http_error_1 = require("../lib/http-error");
@@ -12,18 +13,13 @@ const track_request_1 = require("../schemas/track-request");
 const tracking_service_1 = require("../services/tracking-service");
 const rateLimitHashKey = (0, params_1.defineSecret)("RATE_LIMIT_HASH_KEY");
 exports.trackRequest = (0, https_1.onRequest)({
-    region: "asia-southeast1",
+    region: runtime_1.FUNCTION_REGION,
     memory: "256MiB",
     timeoutSeconds: 30,
     minInstances: 0,
     maxInstances: 20,
     concurrency: 40,
-    cors: [
-        /^http:\/\/localhost(?::\d+)?$/,
-        /^http:\/\/127\.0\.0\.1(?::\d+)?$/,
-        "https://db-rawaicctv.web.app",
-        "https://db-rawaicctv.firebaseapp.com",
-    ],
+    cors: runtime_1.ALLOWED_CORS_ORIGINS,
     secrets: [rateLimitHashKey],
 }, async (request, response) => {
     await (0, http_1.handleApiRequest)({

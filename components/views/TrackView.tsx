@@ -19,6 +19,7 @@ import {
   EyeOff,
   Footprints,
   History,
+  Lightbulb,
   MapPin,
   QrCode,
   Search,
@@ -30,6 +31,9 @@ import type {
   LegacyTrackRequestPayload,
   TrackRequestResult,
 } from '../../lib/api-client';
+import {
+  TrackingProgress,
+} from '../tracking/TrackingProgress';
 
 interface TrackViewProps {
   trackingIdInput: string;
@@ -81,6 +85,20 @@ Record<string, StatusConfig> = {
       'bg-amber-100 text-amber-700',
     progressClassName:
       'bg-amber-500',
+  },
+
+  processing: {
+    title: 'กำลังดำเนินการ',
+    description:
+      'เจ้าหน้าที่รับเรื่องแล้วและกำลังดำเนินการตามขั้นตอนของระบบเดิม',
+    icon: Activity,
+    progress: 25,
+    cardClassName:
+      'bg-blue-50 border-blue-200',
+    iconClassName:
+      'bg-blue-100 text-blue-700',
+    progressClassName:
+      'bg-blue-500',
   },
 
   verifying: {
@@ -376,6 +394,27 @@ React.FC<TrackViewProps> = ({
           ...trackResult.statusHistory,
         ].reverse()
       : [];
+
+  const nextActionMessage =
+    trackResult?.status ===
+    'waiting_for_information'
+      ? 'อ่านข้อความจากเจ้าหน้าที่ด้านล่าง และส่งข้อมูลเพิ่มเติมผ่านช่องทางที่เจ้าหน้าที่ระบุ โดยแจ้งเลขที่คำร้องทุกครั้ง'
+      : trackResult?.status ===
+          'completed'
+        ? trackResult.deliveryMethod ===
+          'LINE'
+          ? 'ตรวจสอบข้อความจากเจ้าหน้าที่และรับผลผ่าน LINE OA ตามช่องทางที่เลือกไว้'
+          : 'ตรวจสอบข้อความจากเจ้าหน้าที่ แล้วเตรียมบัตรประชาชนและอุปกรณ์จัดเก็บข้อมูลเพื่อติดต่อศูนย์ CCTV'
+        : trackResult?.status ===
+            'rejected'
+          ? 'อ่านเหตุผลจากเจ้าหน้าที่ด้านล่าง หากต้องแก้ไขเอกสารหรือข้อมูล กรุณาดำเนินการตามคำแนะนำก่อนยื่นใหม่'
+          : trackResult?.status ===
+              'searching'
+            ? 'ยังไม่ต้องยื่นคำร้องซ้ำ เจ้าหน้าที่กำลังค้นหาภาพตามวัน เวลา และตำแหน่งที่แจ้งไว้'
+            : trackResult?.status ===
+                'verifying'
+              ? 'เตรียมข้อมูลหรือภาพจุดเกิดเหตุเพิ่มเติมไว้ เจ้าหน้าที่อาจติดต่อกลับหากต้องการข้อมูลเพิ่ม'
+              : 'กรุณาเก็บรหัสติดตามไว้และรอเจ้าหน้าที่ตรวจสอบ ไม่จำเป็นต้องยื่นคำร้องซ้ำ';
 
   return (
     <div className="max-w-5xl mx-auto pt-10 pb-24 px-5 text-slate-900">
@@ -692,7 +731,7 @@ React.FC<TrackViewProps> = ({
               <div
                 className={`w-20 h-20 rounded-3xl flex items-center justify-center shrink-0 ${currentStatus.iconClassName}`}
               >
-                <CurrentStatusIcon className="w-10 h-10" />
+                <CurrentStatusIcon className="w-10 h-10" aria-hidden="true" />
               </div>
 
               <div className="text-center sm:text-left flex-1">
@@ -710,6 +749,36 @@ React.FC<TrackViewProps> = ({
 
                 <p className="mt-4 font-mono text-sm font-bold text-slate-700">
                   {trackResult.trackingId}
+                </p>
+
+                <p className="mt-2 text-xs font-medium text-slate-500">
+                  อัปเดตล่าสุด{' '}
+                  {formatTimestamp(
+                    trackResult.updatedAt,
+                  )}
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <TrackingProgress
+            status={trackResult.status}
+            statusHistory={
+              trackResult.statusHistory
+            }
+          />
+
+          <section className="rounded-3xl border border-blue-100 bg-blue-50/70 p-6 sm:p-7">
+            <div className="flex items-start gap-4">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-blue-700 shadow-sm">
+                <Lightbulb className="h-5 w-5" aria-hidden="true" />
+              </span>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-blue-600">
+                  สิ่งที่ควรทำตอนนี้
+                </p>
+                <p className="mt-2 text-sm font-semibold leading-relaxed text-slate-700 sm:text-base">
+                  {nextActionMessage}
                 </p>
               </div>
             </div>

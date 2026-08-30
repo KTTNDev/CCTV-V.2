@@ -15,9 +15,12 @@ import type {
 } from 'lucide-react';
 
 interface BaseFileUploaderProps {
+  inputId: string;
   label: string;
   description: string;
   icon?: LucideIcon;
+  error?: string;
+  required?: boolean;
 }
 
 interface SingleFileUploaderProps {
@@ -52,6 +55,9 @@ const FileUploader = (
     label,
     description,
     icon: Icon = Upload,
+    inputId,
+    error,
+    required = false,
   } = props;
 
   const handleFileChange = (
@@ -108,14 +114,37 @@ const FileUploader = (
 
   return (
     <div className="group w-full">
-      <p className="mb-2 ml-1 block text-[13px] font-semibold uppercase tracking-wider text-slate-600">
+      <p
+        id={`${inputId}-label`}
+        className="mb-2 ml-1 block text-[13px] font-semibold uppercase tracking-wider text-slate-600"
+      >
         {label}
+        {required && (
+          <span className="text-red-500">
+            {' '}*
+          </span>
+        )}
       </p>
 
-      <label className="relative mt-1 flex cursor-pointer justify-center rounded-3xl border-2 border-dashed border-slate-200 bg-slate-50/50 px-6 pb-8 pt-8 transition-all hover:border-blue-300 hover:bg-blue-50/40 group-hover:shadow-sm">
+      <label
+        htmlFor={inputId}
+        className={`relative mt-1 flex cursor-pointer justify-center rounded-3xl border-2 border-dashed px-6 pb-8 pt-8 transition-all group-hover:shadow-sm ${
+          error
+            ? 'border-red-300 bg-red-50/40 hover:border-red-400'
+            : 'border-slate-200 bg-slate-50/50 hover:border-blue-300 hover:bg-blue-50/40'
+        }`}
+      >
         <input
+          id={inputId}
           type="file"
-          className="sr-only"
+          aria-labelledby={`${inputId}-label`}
+          aria-describedby={
+            error
+              ? `${inputId}-description ${inputId}-error`
+              : `${inputId}-description`
+          }
+          aria-invalid={Boolean(error)}
+          className="peer sr-only"
           multiple={
             props.multiple === true
           }
@@ -124,7 +153,7 @@ const FileUploader = (
         />
 
         <div className="space-y-3 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-100 bg-white shadow-sm transition-transform duration-300 group-hover:scale-110">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-100 bg-white shadow-sm transition-transform duration-300 group-hover:scale-110 peer-focus-visible:ring-4 peer-focus-visible:ring-blue-200">
             <Icon
               className="h-7 w-7 text-slate-400 transition-colors group-hover:text-blue-600"
               aria-hidden="true"
@@ -136,12 +165,25 @@ const FileUploader = (
               คลิกเพื่ออัปโหลด
             </span>
 
-            <span className="text-xs font-medium text-slate-400">
+            <span
+              id={`${inputId}-description`}
+              className="text-xs font-medium text-slate-400"
+            >
               {description}
             </span>
           </div>
         </div>
       </label>
+
+      {error && (
+        <p
+          id={`${inputId}-error`}
+          role="alert"
+          className="mt-2 text-xs font-semibold text-red-600"
+        >
+          {error}
+        </p>
+      )}
 
       {fileList.length > 0 && (
         <div className="mt-4 space-y-2">
