@@ -12,7 +12,7 @@ import type {
 
 export const COLORS = [
   "#3b82f6",
-  "#10b981",
+  "#43b99a",
   "#f59e0b",
   "#ef4444",
   "#8b5cf6",

@@ -7,7 +7,7 @@ const REQUEST_COLLECTION = "cctv_requests";
 const ANALYTICS_COLLECTION = "site_analytics";
 const GLOBAL_ANALYTICS_DOCUMENT = "global_stats";
 const CACHE_LIFETIME_MS = 60 * 1000;
-const MAX_ACCIDENT_DOCUMENTS = 500;
+const MAX_SPATIAL_DOCUMENTS = 500;
 const PUBLIC_REQUEST_STATUSES = [
     "pending",
     "processing",
@@ -62,10 +62,6 @@ function isCoordinateInServiceArea(latitude, longitude) {
 function createPublicHotspots(documents) {
     const groupedPoints = new Map();
     for (const document of documents) {
-        if (document.eventType !==
-            "ACCIDENT") {
-            continue;
-        }
         if (typeof document.status !==
             "string" ||
             !PUBLIC_REQUEST_STATUSES.includes(document.status)) {
@@ -101,8 +97,8 @@ function createPublicHotspots(documents) {
         .map((point) => ({
         ...point,
         location: point.count > 1
-            ? `พบรายงานอุบัติเหตุ ${point.count} รายการในบริเวณนี้`
-            : "บริเวณที่เคยมีรายงานอุบัติเหตุ",
+            ? `พบคำร้อง ${point.count} รายการในบริเวณนี้`
+            : "บริเวณที่เคยมีคำร้องผ่านระบบ",
     }));
 }
 async function readRequestStatistics() {
@@ -113,7 +109,7 @@ async function readRequestStatistics() {
         return cachedRequestStatistics.data;
     }
     const requestCollection = firebase_admin_1.adminDb.collection(REQUEST_COLLECTION);
-    const [totalSnapshot, completedSnapshot, pendingSnapshot, accidentSnapshot,] = await Promise.all([
+    const [totalSnapshot, completedSnapshot, pendingSnapshot, spatialSnapshot,] = await Promise.all([
         requestCollection
             .where("status", "in", [
             ...PUBLIC_REQUEST_STATUSES,
@@ -131,8 +127,10 @@ async function readRequestStatistics() {
             .count()
             .get(),
         requestCollection
-            .where("eventType", "==", "ACCIDENT")
-            .limit(MAX_ACCIDENT_DOCUMENTS)
+            .where("status", "in", [
+            ...PUBLIC_REQUEST_STATUSES,
+        ])
+            .limit(MAX_SPATIAL_DOCUMENTS)
             .get(),
     ]);
     const total = totalSnapshot.data().count;
@@ -141,7 +139,7 @@ async function readRequestStatistics() {
     const successRate = total > 0
         ? Math.round((completed / total) * 100)
         : 0;
-    const accidentDocuments = accidentSnapshot.docs.map((document) => document.data());
+    const spatialDocuments = spatialSnapshot.docs.map((document) => document.data());
     const data = {
         requests: {
             total,
@@ -149,7 +147,7 @@ async function readRequestStatistics() {
             pending,
             successRate,
         },
-        hotspots: createPublicHotspots(accidentDocuments),
+        hotspots: createPublicHotspots(spatialDocuments),
     };
     cachedRequestStatistics = {
         expiresAt: now + CACHE_LIFETIME_MS,

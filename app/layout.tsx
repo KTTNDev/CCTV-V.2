@@ -1,5 +1,24 @@
 import type { Metadata, Viewport } from "next";
+import {
+  ThemeProvider,
+} from "../components/providers/ThemeProvider";
 import "./globals.css";
+
+const themeBootstrapScript = `
+(function () {
+  try {
+    var saved = localStorage.getItem('rawai-cctv-color-theme');
+    var dark = saved === 'dark' ||
+      (saved !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    document.documentElement.classList.toggle('dark', dark);
+    document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+  } catch (error) {
+    document.documentElement.classList.toggle(
+      'dark',
+      window.matchMedia('(prefers-color-scheme: dark)').matches
+    );
+  }
+})();`;
 
 export const metadata: Metadata = {
   title: {
@@ -30,8 +49,8 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0f2942",
-  colorScheme: "light",
+  themeColor: "#201c56",
+  colorScheme: "light dark",
   width: "device-width",
   initialScale: 1,
 };
@@ -42,9 +61,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="th">
+    <html lang="th" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: themeBootstrapScript,
+          }}
+        />
+      </head>
       <body className="font-sans antialiased bg-white text-slate-900">
-        {children}
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

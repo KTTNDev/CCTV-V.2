@@ -25,6 +25,7 @@ import {
   isAllowedAdminEmail,
 } from "../../lib/adminEmails";
 import { auth } from "../../lib/firebase";
+import ThemeToggle from "../ui/ThemeToggle";
 
 interface AdminLoginViewProps {
   setView:
@@ -247,6 +248,10 @@ const AdminLoginView:
 
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 p-5 font-sans">
+        <ThemeToggle
+          showLabel
+          className="fixed right-4 top-4 z-20"
+        />
         <div className="w-full max-w-md">
           <button
             type="button"

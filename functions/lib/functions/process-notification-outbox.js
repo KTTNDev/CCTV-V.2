@@ -10,6 +10,7 @@ const line_notification_service_1 = require("../services/line-notification-servi
 const MAX_ATTEMPTS = 5;
 const lineChannelAccessToken = (0, params_1.defineSecret)("LINE_CHANNEL_ACCESS_TOKEN");
 const lineAdminUserId = (0, params_1.defineSecret)("LINE_ADMIN_USER_ID");
+const lineNotificationTargetId = (0, params_1.defineSecret)("LINE_NOTIFICATION_TARGET_ID");
 function isRecord(value) {
     return (typeof value === "object" &&
         value !== null &&
@@ -32,6 +33,12 @@ function getAttempts(value) {
     }
     return value;
 }
+function getTimestampIso(value) {
+    if (value instanceof firestore_2.Timestamp) {
+        return value.toDate().toISOString();
+    }
+    return getString(value, 40);
+}
 function isUuid(value) {
     return (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i).test(value);
 }
@@ -43,6 +50,8 @@ function parseNotificationJob(data, attempt) {
     const eventTimeStart = getString(data.eventTimeStart, 10);
     const eventTimeEnd = getString(data.eventTimeEnd, 10);
     const location = getString(data.location, 300);
+    const submittedAt = getTimestampIso(data.submittedAt ??
+        data.createdAt);
     const retryKey = getString(data.retryKey, 64);
     if (!requestId ||
         !trackingId ||
@@ -51,6 +60,7 @@ function parseNotificationJob(data, attempt) {
         !eventTimeStart ||
         !eventTimeEnd ||
         !location ||
+        !submittedAt ||
         !retryKey ||
         !isUuid(retryKey)) {
         return null;
@@ -63,6 +73,7 @@ function parseNotificationJob(data, attempt) {
         eventTimeStart,
         eventTimeEnd,
         location,
+        submittedAt,
         retryKey,
         attempt,
     };
@@ -183,6 +194,7 @@ exports.processNotificationOutbox = (0, firestore_1.onDocumentCreated)({
     secrets: [
         lineChannelAccessToken,
         lineAdminUserId,
+        lineNotificationTargetId,
     ],
 }, async (event) => {
     const snapshot = event.data;
@@ -200,11 +212,13 @@ exports.processNotificationOutbox = (0, firestore_1.onDocumentCreated)({
     try {
         const result = await (0, line_notification_service_1.sendLineNewRequestNotification)({
             trackingId: job.trackingId,
+            requestId: job.requestId,
             eventType: job.eventType,
             eventDate: job.eventDate,
             eventTimeStart: job.eventTimeStart,
             eventTimeEnd: job.eventTimeEnd,
             location: job.location,
+            submittedAt: job.submittedAt,
             retryKey: job.retryKey,
         });
         await reference.update({

@@ -33,6 +33,11 @@ const lineAdminUserId =
     "LINE_ADMIN_USER_ID",
   );
 
+const lineNotificationTargetId =
+  defineSecret(
+    "LINE_NOTIFICATION_TARGET_ID",
+  );
+
 interface ClaimedNotificationJob {
   requestId: string;
   trackingId: string;
@@ -41,6 +46,7 @@ interface ClaimedNotificationJob {
   eventTimeStart: string;
   eventTimeEnd: string;
   location: string;
+  submittedAt: string;
   retryKey: string;
   attempt: number;
 }
@@ -90,6 +96,16 @@ function getAttempts(
   }
 
   return value;
+}
+
+function getTimestampIso(
+  value: unknown,
+): string | null {
+  if (value instanceof Timestamp) {
+    return value.toDate().toISOString();
+  }
+
+  return getString(value, 40);
 }
 
 function isUuid(
@@ -146,6 +162,12 @@ function parseNotificationJob(
       300,
     );
 
+  const submittedAt =
+    getTimestampIso(
+      data.submittedAt ??
+        data.createdAt,
+    );
+
   const retryKey =
     getString(
       data.retryKey,
@@ -160,6 +182,7 @@ function parseNotificationJob(
     !eventTimeStart ||
     !eventTimeEnd ||
     !location ||
+    !submittedAt ||
     !retryKey ||
     !isUuid(retryKey)
   ) {
@@ -174,6 +197,7 @@ function parseNotificationJob(
     eventTimeStart,
     eventTimeEnd,
     location,
+    submittedAt,
     retryKey,
     attempt,
   };
@@ -440,6 +464,7 @@ export const processNotificationOutbox =
       secrets: [
         lineChannelAccessToken,
         lineAdminUserId,
+        lineNotificationTargetId,
       ],
     },
 
@@ -478,6 +503,9 @@ export const processNotificationOutbox =
               trackingId:
                 job.trackingId,
 
+              requestId:
+                job.requestId,
+
               eventType:
                 job.eventType,
 
@@ -492,6 +520,9 @@ export const processNotificationOutbox =
 
               location:
                 job.location,
+
+              submittedAt:
+                job.submittedAt,
 
               retryKey:
                 job.retryKey,

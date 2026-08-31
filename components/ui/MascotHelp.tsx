@@ -137,6 +137,8 @@ export default function MascotHelp({
     useState(false);
   const [selectedTopicId, setSelectedTopicId] =
     useState<string | null>(null);
+  const [showIntroduction, setShowIntroduction] =
+    useState(true);
   const [storageReady, setStorageReady] =
     useState(false);
 
@@ -198,6 +200,30 @@ export default function MascotHelp({
       );
   }, [isOpen]);
 
+  useEffect(() => {
+    if (
+      !storageReady ||
+      isHidden ||
+      isOpen ||
+      !showIntroduction
+    ) {
+      return;
+    }
+
+    const timer = window.setTimeout(
+      () => setShowIntroduction(false),
+      9_000,
+    );
+
+    return () =>
+      window.clearTimeout(timer);
+  }, [
+    isHidden,
+    isOpen,
+    showIntroduction,
+    storageReady,
+  ]);
+
   const updateHidden = (hidden: boolean) => {
     setIsHidden(hidden);
     setIsOpen(false);
@@ -232,45 +258,47 @@ export default function MascotHelp({
 
   if (!storageReady) return null;
 
+  const isHomeView = view === 'home';
+
   if (isHidden) {
     return (
       <button
         type="button"
         onClick={() => updateHidden(false)}
-        className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-3 z-[80] flex h-12 items-center gap-2 rounded-full border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 shadow-lg shadow-slate-900/10 transition hover:-translate-y-0.5 hover:border-emerald-200 hover:text-emerald-700 focus-visible:ring-4 focus-visible:ring-emerald-100 sm:left-6"
-        aria-label="แสดงผู้ช่วยราไวย์"
+        className={`${isHomeView ? 'bottom-[calc(5.5rem+env(safe-area-inset-bottom))] left-3 sm:bottom-[max(1rem,env(safe-area-inset-bottom))] sm:left-6' : 'right-3 top-20'} fixed z-[80] flex h-12 items-center gap-2 rounded-full border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 shadow-lg shadow-slate-900/10 transition hover:-translate-y-0.5 hover:border-emerald-200 hover:text-emerald-700 focus-visible:ring-4 focus-visible:ring-emerald-100`}
+        aria-label="แสดงน้องกังหัน ผู้ช่วยการใช้งาน"
       >
         <Eye className="h-4 w-4" aria-hidden="true" />
-        <span className="hidden sm:inline">แสดงผู้ช่วย</span>
+        <span className="hidden sm:inline">เรียกน้องกังหัน</span>
       </button>
     );
   }
 
   return (
     <aside
-      className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-2 z-[80] sm:bottom-5 sm:left-6"
-      aria-label="ผู้ช่วยตอบคำถามการใช้งาน"
+      className={`${isHomeView ? 'bottom-[calc(5.25rem+env(safe-area-inset-bottom))] left-2 sm:bottom-5 sm:left-6' : 'right-3 top-20'} fixed z-[80]`}
+      aria-label="น้องกังหัน ผู้ช่วยตอบคำถามการใช้งาน"
     >
       {isOpen && (
         <section
           id="mascot-help-panel"
           role="region"
           aria-label="คำถามที่พบบ่อย"
-          className="mascot-help-pop pointer-events-auto absolute bottom-[6.7rem] left-0 flex max-h-[min(70vh,38rem)] w-[min(calc(100vw-1rem),24rem)] flex-col overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-2xl shadow-slate-950/20 sm:bottom-[7.6rem]"
+          className={`${isHomeView ? 'bottom-[6.5rem] left-0 sm:bottom-[10rem]' : 'right-0 top-[4.5rem]'} mascot-help-pop pointer-events-auto absolute flex max-h-[min(70vh,38rem)] w-[min(calc(100vw-1rem),24rem)] flex-col overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-2xl shadow-slate-950/20`}
         >
-          <div className="relative overflow-hidden bg-[linear-gradient(135deg,#0f2942_0%,#173f62_58%,#0f766e_100%)] px-5 pb-5 pt-4 text-white">
+          <div className="relative overflow-hidden px-5 pb-5 pt-4 text-white" style={{ background: 'var(--brand-gradient)' }}>
             <div className="absolute -right-10 -top-14 h-36 w-36 rounded-full bg-emerald-300/15 blur-2xl" aria-hidden="true" />
             <div className="relative flex items-start justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-200">
                   <MessageCircleQuestion className="h-4 w-4" aria-hidden="true" />
-                  คู่มือช่วยเหลือ
+                  น้องกังหัน · ผู้ช่วยประจำระบบ
                 </div>
                 <h2 className="mt-2 text-xl font-black tracking-tight">
-                  สวัสดี มีอะไรให้ช่วยไหม?
+                  สวัสดี! น้องกังหันเอง
                 </h2>
                 <p className="mt-1 text-xs leading-relaxed text-slate-200">
-                  เลือกคำถามพื้นฐานเกี่ยวกับการใช้งานระบบ
+                  ช่วยแนะนำการยื่นคำร้อง ติดตามสถานะ และใช้งานบริการต่าง ๆ
                 </p>
               </div>
               <button
@@ -307,7 +335,8 @@ export default function MascotHelp({
                   <button
                     type="button"
                     onClick={() => runAction(selectedTopic)}
-                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 focus-visible:ring-4 focus-visible:ring-emerald-100"
+                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:brightness-110 focus-visible:ring-4 focus-visible:ring-emerald-100"
+                    style={{ background: 'var(--brand-gradient)' }}
                   >
                     {selectedTopic.action.label}
                     <ChevronRight className="h-4 w-4" aria-hidden="true" />
@@ -358,32 +387,30 @@ export default function MascotHelp({
               className="flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1.5 text-[11px] font-bold text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
             >
               <EyeOff className="h-3.5 w-3.5" aria-hidden="true" />
-              ซ่อนผู้ช่วย
+              ซ่อนน้องกังหัน
             </button>
           </div>
         </section>
       )}
 
-      <div className="pointer-events-auto flex items-end gap-2">
-        {!isOpen && (
-          <div className="mascot-help-pop mb-12 hidden max-w-[12rem] rounded-2xl rounded-br-sm border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-bold leading-relaxed text-slate-700 shadow-lg shadow-slate-950/10 sm:block">
-            สงสัยวิธีใช้งาน กดถามเราได้เลย
-          </div>
-        )}
+      <div className="pointer-events-auto flex items-end gap-1 sm:gap-2">
         <button
           type="button"
-          onClick={() => setIsOpen((current) => !current)}
+          onClick={() => {
+            setShowIntroduction(false);
+            setIsOpen((current) => !current);
+          }}
           aria-expanded={isOpen}
           aria-controls="mascot-help-panel"
-          aria-label={isOpen ? 'ปิดผู้ช่วยราไวย์' : 'เปิดผู้ช่วยราไวย์'}
-          className="group relative h-[6.1rem] w-[5rem] overflow-visible rounded-[1.6rem] border border-white/80 bg-white/95 shadow-xl shadow-slate-950/20 transition hover:-translate-y-1 focus-visible:ring-4 focus-visible:ring-emerald-200 sm:h-[7rem] sm:w-[5.8rem]"
+          aria-label={isOpen ? 'ปิดน้องกังหัน' : 'เปิดน้องกังหัน ผู้ช่วยการใช้งาน'}
+          className={`${isHomeView ? 'h-[5.75rem] w-[7.25rem] sm:h-[7.25rem] sm:w-[9.25rem]' : 'h-14 w-[4.5rem]'} group relative overflow-visible rounded-[1.5rem] bg-transparent transition hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-200 sm:rounded-[2rem]`}
         >
-          <span className="absolute -right-1 -top-1 z-20 flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500 text-white shadow-md ring-2 ring-white">
+          <span className="mascot-help-badge absolute right-2 top-1 z-20 flex h-7 w-7 items-center justify-center rounded-full bg-[#43b99a] text-white shadow-md ring-2 ring-white sm:right-3">
             <MessageCircleQuestion className="h-4 w-4" aria-hidden="true" />
           </span>
-          <span className="mascot-help-shadow absolute bottom-1 left-1/2 h-3 w-12 -translate-x-1/2 rounded-full bg-slate-900/15 blur-sm" aria-hidden="true" />
-          <span className="mascot-help-float absolute inset-0 overflow-hidden rounded-[1.55rem]" aria-hidden="true">
-            {/* Preserve the supplied mascot artwork; object-cover removes only its transparent side margins. */}
+          <span className="mascot-help-shadow absolute bottom-0 left-1/2 h-3 w-16 -translate-x-1/2 rounded-full bg-slate-900/15 blur-sm" aria-hidden="true" />
+          <span className="mascot-help-float absolute inset-0" aria-hidden="true">
+            {/* Preserve the supplied transparent mascot artwork and its original proportions. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/images/rawai-mascot.png"
@@ -391,10 +418,20 @@ export default function MascotHelp({
               width={732}
               height={525}
               draggable={false}
-              className="h-full w-full select-none object-cover object-center"
+              className="h-full w-full scale-[1.32] select-none object-contain object-bottom drop-shadow-[0_12px_16px_rgba(15,23,42,0.2)]"
             />
           </span>
         </button>
+        {!isOpen && showIntroduction && (
+          <div className="mascot-help-pop mascot-help-speech mb-14 hidden max-w-[13.5rem] rounded-2xl rounded-bl-sm border border-emerald-100 bg-white px-4 py-3 leading-relaxed text-slate-700 shadow-lg shadow-slate-950/10">
+            <span className="block text-[10px] font-black uppercase tracking-[0.12em] text-emerald-700">
+              น้องกังหัน
+            </span>
+            <span className="mt-0.5 block text-xs font-bold">
+              สวัสดี! ผู้ช่วยประจำระบบ มีข้อสงสัยกดถามได้เลย
+            </span>
+          </div>
+        )}
       </div>
     </aside>
   );

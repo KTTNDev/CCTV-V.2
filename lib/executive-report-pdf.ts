@@ -66,10 +66,27 @@ export interface OfficialMemoCover {
   recipient: string;
   signerName: string;
   signerPosition: string;
+  signers?: OfficialMemoSigner[];
   useThaiDigits: boolean;
   urgency: OfficialMemoUrgency;
   confidentiality:
     OfficialMemoConfidentiality;
+}
+
+export interface OfficialMemoSigner {
+  name: string;
+  position: string;
+}
+
+export interface ExecutiveReportCustomization {
+  insights?: string[];
+  recommendations?: string[];
+  memoParagraphs?: string[];
+  memoClosingText?: string;
+  executiveFontScale?: number;
+  executiveLineSpacing?: number;
+  memoFontSize?: number;
+  memoLineSpacing?: number;
 }
 
 export interface ExecutiveReportInput {
@@ -82,6 +99,7 @@ export interface ExecutiveReportInput {
     total: number;
   };
   memoCover?: OfficialMemoCover;
+  customization?: ExecutiveReportCustomization;
 }
 
 export interface BreakdownItem {
@@ -982,16 +1000,21 @@ function drawOfficialParagraph(
   text: string,
   y: number,
   indentFirstLine = true,
+  fontSize = 16,
+  lineSpacing = 1,
 ): number {
   const left = 30;
   const right = 190;
   const indent = indentFirstLine
     ? 25
     : 0;
-  const lineHeight = 7.2;
+  const lineHeight =
+    7.2 *
+    (fontSize / 16) *
+    lineSpacing;
 
   pdf.setFont("THSarabun", "normal");
-  pdf.setFontSize(16);
+  pdf.setFontSize(fontSize);
 
   if (!indentFirstLine) {
     const lines = pdf.splitTextToSize(
@@ -1005,8 +1028,9 @@ function drawOfficialParagraph(
       left,
       y,
       {
-        size: 16,
-        lineHeightFactor: 1.28,
+        size: fontSize,
+        lineHeightFactor:
+          1.28 * lineSpacing,
       },
     );
 
@@ -1031,7 +1055,7 @@ function drawOfficialParagraph(
     left + indent,
     y,
     {
-      size: 16,
+      size: fontSize,
     },
   );
 
@@ -1051,8 +1075,9 @@ function drawOfficialParagraph(
     left,
     y + lineHeight,
     {
-      size: 16,
-      lineHeightFactor: 1.28,
+      size: fontSize,
+      lineHeightFactor:
+        1.28 * lineSpacing,
     },
   );
 
@@ -1066,6 +1091,7 @@ function drawOfficialMemoCover(
   model: ExecutiveReportModel,
   memo: OfficialMemoCover,
   garudaDataUrl: string,
+  customization?: ExecutiveReportCustomization,
 ): void {
   const renderValue = (
     value: string | number,
@@ -1187,11 +1213,30 @@ function drawOfficialMemoCover(
   );
 
   let currentY = 94;
-  const paragraphs = [
+  const defaultParagraphs = [
     "ตามที่เทศบาลตำบลราไวย์ได้เปิดให้บริการระบบยื่นคำร้องขอข้อมูลภาพจากกล้องวงจรปิด (CCTV) เพื่ออำนวยความสะดวกแก่ประชาชน และสนับสนุนการติดตามผลการดำเนินงานของเจ้าหน้าที่ นั้น",
     `ศูนย์ควบคุมและสั่งการระบบ CCTV ได้จัดทำรายงานสรุปผลการดำเนินงานตามช่วง ${model.periodLabel} พบว่ามีคำร้องทั้งหมด ${model.total} รายการ ดำเนินการเสร็จ ${model.completed} รายการ อยู่ระหว่างดำเนินการ ${model.open} รายการ ค้างเกิน 7 วัน ${model.overdueSevenDays} รายการ และมีข้อมูลพิกัดครบถ้วนร้อยละ ${model.spatialCoverageRate} รายละเอียดปรากฏตามรายงานแนบท้าย`,
     `ในการนี้ จึงขอรายงานข้อมูลดังกล่าวเพื่อใช้ประกอบการกำกับติดตาม วิเคราะห์ปัญหา จัดลำดับงานเร่งด่วน วางแผนดูแลระบบกล้องวงจรปิด และพัฒนาคุณภาพการให้บริการประชาชนให้มีประสิทธิภาพยิ่งขึ้น`,
-  ].map(renderValue);
+  ];
+  const paragraphs =
+    (customization?.memoParagraphs?.length
+      ? customization.memoParagraphs
+      : defaultParagraphs
+    ).map(renderValue);
+  const memoFontSize = Math.min(
+    18,
+    Math.max(
+      14,
+      customization?.memoFontSize ?? 16,
+    ),
+  );
+  const memoLineSpacing = Math.min(
+    1.35,
+    Math.max(
+      0.9,
+      customization?.memoLineSpacing ?? 1,
+    ),
+  );
 
   for (const paragraph of paragraphs) {
     currentY =
@@ -1199,6 +1244,9 @@ function drawOfficialMemoCover(
         pdf,
         paragraph,
         currentY,
+        true,
+        memoFontSize,
+        memoLineSpacing,
       ) + 2;
   }
 
@@ -1208,18 +1256,64 @@ function drawOfficialMemoCover(
   );
   drawOfficialParagraph(
     pdf,
-    "จึงเรียนมาเพื่อโปรดทราบ",
+    renderValue(
+      customization?.memoClosingText ||
+        "จึงเรียนมาเพื่อโปรดทราบ",
+    ),
     currentY,
+    true,
+    memoFontSize,
+    memoLineSpacing,
   );
 
-  const signatureY = 224;
+  const signers = (
+    memo.signers?.length
+      ? memo.signers
+      : [
+          {
+            name: memo.signerName,
+            position:
+              memo.signerPosition,
+          },
+        ]
+  ).slice(0, 4);
+  const firstSigner = signers[0] ?? {
+    name: "",
+    position: "",
+  };
+
+  drawOfficialSignerBlock(
+    pdf,
+    firstSigner,
+    132,
+    195,
+    renderValue,
+  );
+}
+
+function drawOfficialSignerBlock(
+  pdf: jsPDF,
+  signer: OfficialMemoSigner,
+  centerX: number,
+  topY: number,
+  renderValue: (
+    value: string | number,
+  ) => string,
+): number {
+  const blankSignatureLines = 4;
+  const signatureLineHeight = 7.2;
+  const nameY =
+    topY +
+    blankSignatureLines *
+      signatureLineHeight;
+
   writeOfficialText(
     pdf,
-    memo.signerName
-      ? `(${renderValue(memo.signerName)})`
+    signer.name
+      ? `(${renderValue(signer.name)})`
       : "(........................................................)",
-    132,
-    signatureY,
+    centerX,
+    nameY,
     {
       size: 16,
       align: "center",
@@ -1227,25 +1321,134 @@ function drawOfficialMemoCover(
   );
   writeOfficialText(
     pdf,
-    memo.signerPosition ||
+    signer.position ||
       "ผู้จัดทำรายงาน",
-    132,
-    signatureY + 8,
+    centerX,
+    nameY + 8,
     {
       size: 16,
+      align: "center",
+      maxWidth: 116,
+    },
+  );
+
+  return nameY + 16;
+}
+
+function drawOfficialOpinionSignerBlock(
+  pdf: jsPDF,
+  signer: OfficialMemoSigner,
+  topY: number,
+  renderValue: (
+    value: string | number,
+  ) => string,
+): number {
+  const position =
+    signer.position.trim();
+  const opinionTitle = position
+    ? `ความเห็น${renderValue(position)}`
+    : "ความเห็นผู้พิจารณา";
+
+  writeOfficialText(
+    pdf,
+    opinionTitle,
+    30,
+    topY,
+    {
+      size: 16,
+    },
+  );
+
+  pdf.setDrawColor(0, 0, 0);
+  pdf.setLineWidth(0.2);
+  pdf.setLineDashPattern(
+    [0.8, 1.15],
+    0,
+  );
+  pdf.line(
+    30,
+    topY + 8,
+    190,
+    topY + 8,
+  );
+  pdf.line(
+    30,
+    topY + 16,
+    190,
+    topY + 16,
+  );
+  pdf.setLineDashPattern([], 0);
+
+  return drawOfficialSignerBlock(
+    pdf,
+    signer,
+    132,
+    topY + 22,
+    renderValue,
+  );
+}
+
+function drawOfficialSignatureContinuation(
+  pdf: jsPDF,
+  memo: OfficialMemoCover,
+  signers: OfficialMemoSigner[],
+): void {
+  const renderValue = (
+    value: string | number,
+  ): string =>
+    memo.useThaiDigits
+      ? toThaiDigits(value)
+      : String(value);
+
+  if (memo.confidentiality) {
+    writeOfficialText(
+      pdf,
+      memo.confidentiality,
+      105,
+      8,
+      {
+        size: 16,
+        style: "bold",
+        align: "center",
+      },
+    );
+    writeOfficialText(
+      pdf,
+      memo.confidentiality,
+      105,
+      290,
+      {
+        size: 16,
+        style: "bold",
+        align: "center",
+      },
+    );
+  }
+
+  writeOfficialText(
+    pdf,
+    memo.useThaiDigits
+      ? "- ๒ -"
+      : "- 2 -",
+    105,
+    10,
+    {
+      size: 14,
       align: "center",
     },
   );
 
-  writeOfficialText(
-    pdf,
-    "หมายเหตุ: โปรดตรวจสอบเลขที่หนังสือ วันที่ ผู้รับ และผู้ลงนามก่อนนำเสนอ",
-    30,
-    279,
-    {
-      size: 12,
-    },
-  );
+  let signerTopY = 27;
+
+  for (const signer of signers) {
+    signerTopY =
+      drawOfficialOpinionSignerBlock(
+        pdf,
+        signer,
+        signerTopY,
+        renderValue,
+      ) + 9;
+  }
 }
 
 function drawHeader(
@@ -1463,6 +1666,8 @@ function drawBulletList(
   color: readonly [number, number, number] =
     COLORS.emerald,
   maxItems = 5,
+  fontScale = 1,
+  lineSpacing = 1,
 ): number {
   let currentY = y;
 
@@ -1481,7 +1686,7 @@ function drawBulletList(
       x + 6,
       currentY,
       {
-        size: 7.3,
+        size: 7.3 * fontScale,
         color: COLORS.slate,
         maxWidth: width - 6,
       },
@@ -1489,7 +1694,7 @@ function drawBulletList(
     currentY += Math.max(
       8,
       height + 2,
-    );
+    ) * lineSpacing;
   }
 
   return currentY;
@@ -1519,6 +1724,7 @@ function truncateText(
 function drawExecutiveOverview(
   pdf: jsPDF,
   model: ExecutiveReportModel,
+  customization?: ExecutiveReportCustomization,
 ): void {
   drawHeader(
     pdf,
@@ -1669,6 +1875,9 @@ function drawExecutiveOverview(
     116,
     134,
     COLORS.blue,
+    5,
+    customization?.executiveFontScale ?? 1,
+    customization?.executiveLineSpacing ?? 1,
   );
 
   drawSectionTitle(
@@ -1685,6 +1894,8 @@ function drawExecutiveOverview(
     134,
     COLORS.emerald,
     4,
+    customization?.executiveFontScale ?? 1,
+    customization?.executiveLineSpacing ?? 1,
   );
 }
 
@@ -2060,8 +2271,36 @@ export async function buildExecutiveReportPdf(
 ): Promise<jsPDF> {
   const model =
     buildExecutiveReportModel(input);
+  if (input.customization?.insights) {
+    model.insights =
+      input.customization.insights;
+  }
+  if (input.customization?.recommendations) {
+    model.recommendations =
+      input.customization.recommendations;
+  }
   const includeMemoCover =
     input.memoCover?.enabled === true;
+  const memoSigners =
+    input.memoCover?.signers?.length
+      ? input.memoCover.signers.slice(
+          0,
+          4,
+        )
+      : input.memoCover
+        ? [
+            {
+              name:
+                input.memoCover.signerName,
+              position:
+                input.memoCover
+                  .signerPosition,
+            },
+          ]
+        : [];
+  const hasSignatureContinuation =
+    includeMemoCover &&
+    memoSigners.length > 1;
   const pdf = new jsPDF({
     orientation: includeMemoCover
       ? "portrait"
@@ -2103,14 +2342,30 @@ export async function buildExecutiveReportPdf(
       model,
       input.memoCover,
       garudaDataUrl,
+      input.customization,
     );
+    if (hasSignatureContinuation) {
+      pdf.addPage(
+        "a4",
+        "portrait",
+      );
+      drawOfficialSignatureContinuation(
+        pdf,
+        input.memoCover,
+        memoSigners.slice(1),
+      );
+    }
     pdf.addPage(
       "a4",
       "landscape",
     );
   }
 
-  drawExecutiveOverview(pdf, model);
+  drawExecutiveOverview(
+    pdf,
+    model,
+    input.customization,
+  );
   pdf.addPage("a4", "landscape");
   drawOperationalAnalysis(pdf, model);
   drawRegistry(
@@ -2121,7 +2376,11 @@ export async function buildExecutiveReportPdf(
   addPageFooters(
     pdf,
     model.generatedAt,
-    includeMemoCover ? 2 : 1,
+    includeMemoCover
+      ? hasSignatureContinuation
+        ? 3
+        : 2
+      : 1,
   );
 
   return pdf;

@@ -13,20 +13,18 @@ import {
 } from "firebase/firestore";
 import {
   ArrowLeft,
+  BookOpen,
   CarFront,
   CircleCheck,
   CloudRain,
-  Gauge,
   Grid2X2,
   Info,
   MapPin,
   MonitorPlay,
   Pause,
   Play,
-  Radio,
   Search,
   ShieldCheck,
-  Wifi,
   WifiOff,
 } from "lucide-react";
 
@@ -43,6 +41,7 @@ import { db } from "../../lib/firebase";
 
 interface LiveCamerasViewProps {
   setView: (view: string) => void;
+  onGuideClick: () => void;
 }
 
 type CameraFilter =
@@ -128,7 +127,7 @@ function CameraStream({
                 ? "กล้องออฟไลน์ชั่วคราว"
                 : isConfigured
                   ? "หยุดสตรีมเพื่อประหยัดข้อมูล"
-                  : "รอเชื่อมต่อ Media Gateway"}
+                  : "รอเปิดให้รับชม"}
           </p>
           {!compact && (
             <p className="mt-2 max-w-md text-xs leading-relaxed text-slate-400 sm:text-sm">
@@ -136,7 +135,7 @@ function CameraStream({
                 ? "ระบบจะเชื่อมกล้องเมื่อคุณกดเริ่มรับชมเท่านั้น"
                 : camera.status !== "online"
                   ? "เจ้าหน้าที่กำลังตรวจสอบและจะเปิดให้รับชมเมื่อพร้อม"
-                  : "หน้าเว็บพร้อมใช้งานแล้ว เหลือกำหนด URL ของระบบแปลง RTSP"}
+                  : "สตรีมนี้ยังไม่พร้อมใช้งาน กรุณาลองใหม่ภายหลัง"}
             </p>
           )}
         </div>
@@ -194,6 +193,7 @@ function CameraStream({
 const LiveCamerasView:
   React.FC<LiveCamerasViewProps> = ({
     setView,
+    onGuideClick,
   }) => {
     const [filter, setFilter] =
       useState<CameraFilter>("all");
@@ -427,18 +427,14 @@ const LiveCamerasView:
 
             <div className="mt-9 grid items-end gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
               <div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-300">
-                  <Radio className="h-3.5 w-3.5" />
-                  Rawai public live cameras
-                </div>
-                <h1 className="mt-5 max-w-3xl text-3xl font-bold tracking-tight sm:text-5xl">
+                <h1 className="max-w-3xl text-3xl font-bold tracking-tight sm:text-5xl">
                   กล้องออนไลน์สาธารณะ
                   <span className="mt-2 block text-emerald-300">
                     ดูสถานการณ์ก่อนออกเดินทาง
                   </span>
                 </h1>
                 <p className="mt-5 max-w-2xl text-sm leading-7 text-slate-300 sm:text-base">
-                  เลือกดูสภาพน้ำ การจราจร และแหล่งท่องเที่ยว โดยระบบจะเริ่มรับส่งวิดีโอเฉพาะกล้องที่คุณเลือกเท่านั้น
+                  เลือกดูสภาพน้ำ การจราจร และแหล่งท่องเที่ยวก่อนออกเดินทาง
                 </p>
               </div>
 
@@ -538,26 +534,12 @@ const LiveCamerasView:
           {!gatewayConfigured && (
             <div className="mb-6 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-950">
               <Info className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
-              <div>
+              <div className="flex-1">
                 <p className="text-sm font-bold">
-                  หน้าแสดงผลพร้อมแล้ว แต่ยังไม่ได้กำหนด Media Gateway
+                  ระบบถ่ายทอดสดกำลังเตรียมพร้อม
                 </p>
                 <p className="mt-1 text-xs leading-relaxed text-amber-800">
-                  ตั้งค่า NEXT_PUBLIC_STREAM_GATEWAY_URL หลังติดตั้งระบบรับ RTSP แล้ว กล้องจึงจะเริ่มเล่นได้
-                </p>
-              </div>
-            </div>
-          )}
-
-          {catalogSource === "fallback" && (
-            <div className="mb-6 flex items-start gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-blue-950">
-              <Info className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
-              <div>
-                <p className="text-sm font-bold">
-                  กำลังแสดงรายการตัวอย่าง
-                </p>
-                <p className="mt-1 text-xs leading-relaxed text-blue-800">
-                  ยังอ่าน camera catalog จาก Firestore ไม่สำเร็จ กรุณา deploy Rules และเพิ่มข้อมูลผ่านหน้า Admin
+                  รายการกล้องยังเปิดดูได้ตามปกติ และจะเริ่มรับชมได้เมื่อระบบเชื่อมต่อสำเร็จ
                 </p>
               </div>
             </div>
@@ -611,10 +593,7 @@ const LiveCamerasView:
               <aside className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm xl:sticky xl:top-44">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-600">
-                      Camera directory
-                    </p>
-                    <h2 className="mt-1 font-bold text-slate-950">
+                    <h2 className="font-bold text-slate-950">
                       เลือกจุดรับชม
                     </h2>
                   </div>
@@ -678,7 +657,7 @@ const LiveCamerasView:
                   ยังไม่มีกล้องที่เผยแพร่
                 </h2>
                 <p className="mt-2 text-sm text-slate-500">
-                  เจ้าหน้าที่สามารถเพิ่มและเปิดเผยกล้องได้จากหน้า Admin
+                  โปรดลองใหม่ภายหลัง
                 </p>
               </div>
             )}
@@ -691,7 +670,7 @@ const LiveCamerasView:
                     โหมดหลายกล้อง
                   </h2>
                   <p className="mt-1 text-xs text-slate-500">
-                    เลือกได้สูงสุด {MAX_GRID_STREAMS} กล้อง ระบบจะไม่เชื่อมต่อกล้องที่ไม่ได้เลือก
+                    เลือกได้สูงสุด {MAX_GRID_STREAMS} กล้อง
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -748,10 +727,7 @@ const LiveCamerasView:
               <div className="mt-8">
                 <div className="mb-4 flex items-end justify-between gap-4">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-600">
-                      Select cameras
-                    </p>
-                    <h2 className="mt-1 text-lg font-bold text-slate-950">
+                    <h2 className="text-lg font-bold text-slate-950">
                       รายการกล้อง
                     </h2>
                   </div>
@@ -823,40 +799,15 @@ const LiveCamerasView:
             </div>
           )}
 
-          <section className="mt-10 grid gap-4 md:grid-cols-3">
-            {[
-              {
-                icon: Gauge,
-                title: "เชื่อมต่อเมื่อกดดู",
-                text: "ไม่เปิดทุกสตรีมพร้อมกันโดยอัตโนมัติ ลดข้อมูลทั้งฝั่งผู้ชมและระบบกลาง",
-              },
-              {
-                icon: Wifi,
-                title: "จำกัดไม่เกิน 4 กล้อง",
-                text: "โหมดหลายกล้องมีเพดานชัดเจนและหยุดทั้งหมดได้ในคลิกเดียว",
-              },
-              {
-                icon: ShieldCheck,
-                title: "เผยแพร่เฉพาะกล้องสาธารณะ",
-                text: "ไม่ส่ง RTSP URL, IP, username หรือ password ของกล้องมายังเบราว์เซอร์",
-              },
-            ].map((item) => {
-              const Icon = item.icon;
-              return (
-                <div
-                  key={item.title}
-                  className="rounded-2xl border border-slate-200 bg-white p-5"
-                >
-                  <Icon className="h-5 w-5 text-emerald-600" />
-                  <h3 className="mt-4 text-sm font-bold text-slate-900">
-                    {item.title}
-                  </h3>
-                  <p className="mt-2 text-xs leading-relaxed text-slate-500">
-                    {item.text}
-                  </p>
-                </div>
-              );
-            })}
+          <section className="mt-10 flex flex-col items-start justify-between gap-4 border-t border-slate-200 py-6 sm:flex-row sm:items-center">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">สงสัยเรื่องการรับชมและความเป็นส่วนตัว?</h2>
+              <p className="mt-1 text-xs text-slate-500">อ่านรายละเอียดเมื่อคุณต้องการ โดยไม่รบกวนการใช้งานหลัก</p>
+            </div>
+            <button type="button" onClick={onGuideClick} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs font-bold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-700">
+              <BookOpen className="h-4 w-4" />
+              เปิดคู่มือกล้องออนไลน์
+            </button>
           </section>
         </div>
       </div>

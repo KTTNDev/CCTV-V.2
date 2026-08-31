@@ -44,10 +44,10 @@ const MainStatCard:
     icon: Icon,
     iconClassName,
   }) => (
-    <div className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition duration-300 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg">
-      <div className="mb-5 flex items-start justify-between">
+    <div className="group rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm transition duration-300 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg sm:p-5">
+      <div className="mb-3 flex items-start justify-between sm:mb-5">
         <div
-          className={`flex h-10 w-10 items-center justify-center rounded-xl ${iconClassName}`}
+          className={`flex h-9 w-9 items-center justify-center rounded-xl sm:h-10 sm:w-10 ${iconClassName}`}
         >
           <Icon className="h-5 w-5" />
         </div>
@@ -61,13 +61,13 @@ const MainStatCard:
         {label}
       </p>
 
-      <p className="mt-1 text-3xl font-bold tracking-tight text-slate-950">
+      <p className="mt-1 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
         {value.toLocaleString(
           "th-TH",
         )}
       </p>
 
-      <p className="mt-2 text-[10px] leading-relaxed text-slate-400">
+      <p className="mt-2 hidden text-[10px] leading-relaxed text-slate-400 sm:block">
         {description}
       </p>
     </div>
@@ -149,7 +149,7 @@ export const StatsCards:
     return (
       <section
         aria-labelledby="admin-statistics-title"
-        className="mb-8"
+        className="mb-6 sm:mb-8"
       >
         <div className="mb-4 flex items-center justify-between px-1">
           <div>
@@ -288,7 +288,7 @@ export const StatsCards:
             </div>
           </div>
 
-          <div className="flex items-center gap-3 rounded-2xl bg-emerald-600 p-4 text-white shadow-lg shadow-emerald-100">
+          <div className="flex items-center gap-3 rounded-2xl p-4 text-white shadow-lg shadow-emerald-100" style={{ background: "var(--brand-gradient)" }}>
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/15">
               <Users className="h-4 w-4" />
             </div>

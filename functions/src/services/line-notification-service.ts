@@ -1,19 +1,20 @@
 const LINE_PUSH_ENDPOINT =
   "https://api.line.me/v2/bot/message/push";
 
-const ADMIN_PORTAL_URL =
+const DEFAULT_STAFF_PORTAL_URL =
   "https://db-rawaicctv.web.app/";
 
-const REQUEST_TIMEOUT_MS =
-  10_000;
+const REQUEST_TIMEOUT_MS = 10_000;
 
 export interface LineNewRequestNotification {
+  requestId: string;
   trackingId: string;
   eventType: string;
   eventDate: string;
   eventTimeStart: string;
   eventTimeEnd: string;
   location: string;
+  submittedAt: string;
 
   /**
    * UUID ที่เก็บไว้กับ Outbox Job
@@ -26,30 +27,20 @@ export interface LinePushResult {
   lineRequestId: string | null;
 }
 
-export class LineMessagingApiError
-  extends Error {
+export class LineMessagingApiError extends Error {
   readonly status: number;
-  readonly lineRequestId:
-    | string
-    | null;
+  readonly lineRequestId: string | null;
 
   constructor(options: {
     status: number;
     message: string;
-    lineRequestId:
-      | string
-      | null;
+    lineRequestId: string | null;
   }) {
     super(options.message);
 
-    this.name =
-      "LineMessagingApiError";
-
-    this.status =
-      options.status;
-
-    this.lineRequestId =
-      options.lineRequestId;
+    this.name = "LineMessagingApiError";
+    this.status = options.status;
+    this.lineRequestId = options.lineRequestId;
 
     Object.setPrototypeOf(
       this,
@@ -64,10 +55,7 @@ function sanitizeText(
   fallback: string,
 ): string {
   const normalized = value
-    .replace(
-      /[\u0000-\u001F\u007F]/g,
-      " ",
-    )
+    .replace(/[\u0000-\u001F\u007F]/g, " ")
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, maximumLength);
@@ -84,104 +72,185 @@ function getEventPresentation(
   switch (eventType) {
     case "ACCIDENT":
       return {
-        label:
-          "อุบัติเหตุจราจร",
+        label: "อุบัติเหตุจราจร",
         color: "#DC2626",
       };
 
     case "THEFT":
       return {
-        label:
-          "โจรกรรม / ลักทรัพย์",
+        label: "โจรกรรม / ลักทรัพย์",
         color: "#B91C1C",
       };
 
     case "VANDALISM":
       return {
-        label:
-          "ทำลายทรัพย์สิน",
+        label: "ทำลายทรัพย์สิน",
         color: "#D97706",
       };
 
     case "DISPUTE":
       return {
-        label:
-          "ข้อพิพาท / ทะเลาะวิวาท",
+        label: "ข้อพิพาท / ทะเลาะวิวาท",
         color: "#EA580C",
       };
 
     default:
       return {
-        label:
-          "เหตุการณ์อื่น ๆ",
+        label: "เหตุการณ์อื่น ๆ",
         color: "#2563EB",
       };
   }
 }
 
-function createFlexMessage(
-  input:
-    LineNewRequestNotification,
+function formatThaiDateTime(
+  value: string,
+): string {
+  const parsedDate = new Date(value);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return sanitizeText(
+      value,
+      40,
+      "-",
+    );
+  }
+
+  return new Intl.DateTimeFormat(
+    "th-TH",
+    {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: "Asia/Bangkok",
+    },
+  ).format(parsedDate);
+}
+
+function getStaffPortalBaseUrl(): string {
+  const configuredUrl =
+    process.env.STAFF_PORTAL_BASE_URL?.trim() ||
+    DEFAULT_STAFF_PORTAL_URL;
+
+  const parsedUrl = new URL(configuredUrl);
+
+  if (
+    parsedUrl.protocol !== "https:" &&
+    parsedUrl.protocol !== "http:"
+  ) {
+    throw new Error(
+      "STAFF_PORTAL_BASE_URL must use HTTP or HTTPS",
+    );
+  }
+
+  return parsedUrl.toString();
+}
+
+export function createAdminRequestUrl(
+  requestId: string,
+  baseUrl = DEFAULT_STAFF_PORTAL_URL,
+): string {
+  const parsedUrl = new URL(baseUrl);
+
+  parsedUrl.searchParams.set(
+    "adminRequest",
+    requestId,
+  );
+
+  return parsedUrl.toString();
+}
+
+function createDetailRow(
+  label: string,
+  value: string,
 ): Record<string, unknown> {
-  const event =
-    getEventPresentation(
-      input.eventType,
-    );
+  return {
+    type: "box",
+    layout: "baseline",
+    spacing: "sm",
+    contents: [
+      {
+        type: "text",
+        text: label,
+        color: "#94A3B8",
+        size: "sm",
+        flex: 2,
+      },
+      {
+        type: "text",
+        text: value,
+        wrap: true,
+        color: "#334155",
+        size: "sm",
+        flex: 5,
+      },
+    ],
+  };
+}
 
-  const trackingId =
-    sanitizeText(
-      input.trackingId,
-      128,
-      "-",
-    );
+/**
+ * สร้างเฉพาะข้อมูลที่เจ้าหน้าที่จำเป็นต้องใช้คัดกรองงาน
+ * ห้ามเพิ่มเลขบัตรประชาชน อีเมล เบอร์โทร หรือ URL ไฟล์แนบในข้อความ LINE
+ */
+export function createLineNewRequestMessage(
+  input: LineNewRequestNotification,
+  portalBaseUrl = DEFAULT_STAFF_PORTAL_URL,
+): Record<string, unknown> {
+  const event = getEventPresentation(
+    input.eventType,
+  );
 
-  const location =
-    sanitizeText(
-      input.location,
-      300,
-      "ไม่ระบุสถานที่",
-    );
+  const trackingId = sanitizeText(
+    input.trackingId,
+    128,
+    "-",
+  );
 
-  const eventDate =
-    sanitizeText(
-      input.eventDate,
-      20,
-      "-",
-    );
+  const location = sanitizeText(
+    input.location,
+    300,
+    "ไม่ระบุสถานที่",
+  );
 
-  const startTime =
-    sanitizeText(
-      input.eventTimeStart,
-      10,
-      "-",
-    );
+  const eventDate = sanitizeText(
+    input.eventDate,
+    20,
+    "-",
+  );
 
-  const endTime =
-    sanitizeText(
-      input.eventTimeEnd,
-      10,
-      "-",
-    );
+  const startTime = sanitizeText(
+    input.eventTimeStart,
+    10,
+    "-",
+  );
+
+  const endTime = sanitizeText(
+    input.eventTimeEnd,
+    10,
+    "-",
+  );
+
+  const submittedAt = formatThaiDateTime(
+    input.submittedAt,
+  );
+
+  const requestUrl = createAdminRequestUrl(
+    input.requestId,
+    portalBaseUrl,
+  );
 
   return {
     type: "flex",
-
     altText:
-      `คำร้อง CCTV ใหม่: ` +
+      `มีคำร้อง CCTV ใหม่ ${trackingId}: ` +
       event.label,
-
     contents: {
       type: "bubble",
-
       body: {
         type: "box",
         layout: "vertical",
-
         contents: [
           {
             type: "text",
-            text:
-              "คำร้องขอ CCTV ใหม่",
+            text: "มีคำร้อง CCTV ใหม่",
             weight: "bold",
             size: "lg",
             color: event.color,
@@ -204,110 +273,53 @@ function createFlexMessage(
             layout: "vertical",
             margin: "lg",
             spacing: "md",
-
             contents: [
-              {
-                type: "box",
-                layout: "baseline",
-                spacing: "sm",
-
-                contents: [
-                  {
-                    type: "text",
-                    text: "ID",
-                    color:
-                      "#94A3B8",
-                    size: "sm",
-                    flex: 1,
-                  },
-                  {
-                    type: "text",
-                    text:
-                      trackingId,
-                    wrap: true,
-                    color:
-                      "#334155",
-                    size: "sm",
-                    flex: 4,
-                    weight: "bold",
-                  },
-                ],
-              },
-              {
-                type: "box",
-                layout: "baseline",
-                spacing: "sm",
-
-                contents: [
-                  {
-                    type: "text",
-                    text: "สถานที่",
-                    color:
-                      "#94A3B8",
-                    size: "sm",
-                    flex: 1,
-                  },
-                  {
-                    type: "text",
-                    text:
-                      location,
-                    wrap: true,
-                    color:
-                      "#334155",
-                    size: "sm",
-                    flex: 4,
-                  },
-                ],
-              },
-              {
-                type: "box",
-                layout: "baseline",
-                spacing: "sm",
-
-                contents: [
-                  {
-                    type: "text",
-                    text: "เวลา",
-                    color:
-                      "#94A3B8",
-                    size: "sm",
-                    flex: 1,
-                  },
-                  {
-                    type: "text",
-                    text:
-                      `${eventDate} ` +
-                      `(${startTime}–${endTime})`,
-                    wrap: true,
-                    color:
-                      "#334155",
-                    size: "sm",
-                    flex: 4,
-                  },
-                ],
-              },
+              createDetailRow(
+                "เลขคำร้อง",
+                trackingId,
+              ),
+              createDetailRow(
+                "สถานะ",
+                "รอตรวจสอบคำร้อง",
+              ),
+              createDetailRow(
+                "สถานที่",
+                location,
+              ),
+              createDetailRow(
+                "เวลาเหตุ",
+                `${eventDate} (${startTime}–${endTime})`,
+              ),
+              createDetailRow(
+                "รับเรื่องเมื่อ",
+                submittedAt,
+              ),
             ],
+          },
+          {
+            type: "text",
+            text:
+              "เข้าสู่ระบบก่อน ระบบจะเปิดคำร้องนี้ให้โดยตรง",
+            size: "xs",
+            color: "#64748B",
+            margin: "lg",
+            wrap: true,
           },
         ],
       },
-
       footer: {
         type: "box",
         layout: "vertical",
-
         contents: [
           {
             type: "button",
             style: "primary",
             color: event.color,
             height: "sm",
-
             action: {
               type: "uri",
-              label:
-                "เข้าสู่ระบบเจ้าหน้าที่",
-              uri:
-                ADMIN_PORTAL_URL,
+              label: "เปิดคำร้องนี้",
+              uri: requestUrl,
             },
           },
         ],
@@ -317,16 +329,25 @@ function createFlexMessage(
 }
 
 function getRequiredSecret(
-  name:
-    | "LINE_CHANNEL_ACCESS_TOKEN"
-    | "LINE_ADMIN_USER_ID",
+  name: "LINE_CHANNEL_ACCESS_TOKEN",
 ): string {
+  const value = process.env[name]?.trim();
+
+  if (!value) {
+    throw new Error(`${name} secret is missing`);
+  }
+
+  return value;
+}
+
+function getNotificationTargetId(): string {
   const value =
-    process.env[name]?.trim();
+    process.env.LINE_NOTIFICATION_TARGET_ID?.trim() ||
+    process.env.LINE_ADMIN_USER_ID?.trim();
 
   if (!value) {
     throw new Error(
-      `${name} secret is missing`,
+      "LINE_NOTIFICATION_TARGET_ID secret is missing",
     );
   }
 
@@ -337,46 +358,33 @@ async function getLineErrorMessage(
   response: Response,
 ): Promise<string> {
   try {
-    const body =
-      await response.json();
+    const body: unknown = await response.json();
 
     if (
       typeof body === "object" &&
       body !== null &&
       "message" in body &&
-      typeof body.message ===
-        "string"
+      typeof body.message === "string"
     ) {
-      return body.message
-        .trim()
-        .slice(0, 300);
+      return body.message.trim().slice(0, 300);
     }
   } catch {
     // ใช้ข้อความทั่วไปด้านล่าง
   }
 
-  return (
-    "LINE Messaging API " +
-    "ปฏิเสธคำขอ"
-  );
+  return "LINE Messaging API ปฏิเสธคำขอ";
 }
 
 export async function sendLineNewRequestNotification(
-  input:
-    LineNewRequestNotification,
+  input: LineNewRequestNotification,
 ): Promise<LinePushResult> {
-  const accessToken =
-    getRequiredSecret(
-      "LINE_CHANNEL_ACCESS_TOKEN",
-    );
+  const accessToken = getRequiredSecret(
+    "LINE_CHANNEL_ACCESS_TOKEN",
+  );
 
-  const recipientId =
-    getRequiredSecret(
-      "LINE_ADMIN_USER_ID",
-    );
-
-  const controller =
-    new AbortController();
+  const recipientId = getNotificationTargetId();
+  const portalBaseUrl = getStaffPortalBaseUrl();
+  const controller = new AbortController();
 
   const timeout = setTimeout(
     () => controller.abort(),
@@ -384,84 +392,63 @@ export async function sendLineNewRequestNotification(
   );
 
   try {
-    const response =
-      await fetch(
-        LINE_PUSH_ENDPOINT,
-        {
-          method: "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json",
-
-            Authorization:
-              `Bearer ${accessToken}`,
-
-            "X-Line-Retry-Key":
-              input.retryKey,
-          },
-
-          body: JSON.stringify({
-            to: recipientId,
-
-            messages: [
-              createFlexMessage(
-                input,
-              ),
-            ],
-
-            notificationDisabled:
-              false,
-          }),
-
-          signal:
-            controller.signal,
+    const response = await fetch(
+      LINE_PUSH_ENDPOINT,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+          "X-Line-Retry-Key": input.retryKey,
         },
-      );
+        body: JSON.stringify({
+          to: recipientId,
+          messages: [
+            createLineNewRequestMessage(
+              input,
+              portalBaseUrl,
+            ),
+          ],
+          notificationDisabled: false,
+        }),
+        signal: controller.signal,
+      },
+    );
 
-  const lineRequestId =
-  response.headers.get(
-    "x-line-request-id",
-  );
+    const lineRequestId = response.headers.get(
+      "x-line-request-id",
+    );
 
-const acceptedRequestId =
-  response.headers.get(
-    "x-line-accepted-request-id",
-  );
+    const acceptedRequestId = response.headers.get(
+      "x-line-accepted-request-id",
+    );
 
-/**
- * LINE ตอบ 409 เมื่อ Retry Key นี้
- * เคยถูกยอมรับและส่งสำเร็จแล้ว
- * จึงต้องถือว่างานสำเร็จเพื่อป้องกัน
- * การส่งข้อความซ้ำ
- */
-if (
-  response.status === 409 &&
-  acceptedRequestId
-) {
-  return {
-    lineRequestId:
-      acceptedRequestId,
-  };
-}
+    /**
+     * LINE ตอบ 409 เมื่อ Retry Key นี้เคยถูกยอมรับแล้ว
+     * จึงถือว่างานสำเร็จเพื่อป้องกันข้อความซ้ำ
+     */
+    if (
+      response.status === 409 &&
+      acceptedRequestId
+    ) {
+      return {
+        lineRequestId: acceptedRequestId,
+      };
+    }
 
-if (!response.ok) {
-  throw new LineMessagingApiError({
-    status:
-      response.status,
+    if (!response.ok) {
+      throw new LineMessagingApiError({
+        status: response.status,
+        message: await getLineErrorMessage(
+          response,
+        ),
+        lineRequestId,
+      });
+    }
 
-    message:
-      await getLineErrorMessage(
-        response,
-      ),
-
-    lineRequestId,
-  });
-}
-
-return {
-  lineRequestId,
-};
+    return {
+      lineRequestId,
+    };
   } finally {
     clearTimeout(timeout);
   }

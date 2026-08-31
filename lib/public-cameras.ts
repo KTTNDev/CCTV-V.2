@@ -8,6 +8,8 @@ export interface PublicCamera {
   name: string;
   shortName: string;
   location: string;
+  latitude: number | null;
+  longitude: number | null;
   description: string;
   category: PublicCameraCategory;
   streamPath: string;
@@ -53,6 +55,8 @@ export const PUBLIC_CAMERAS:
       name: "จุดเฝ้าระวังน้ำท่วม ถนนวิเศษ",
       shortName: "ถนนวิเศษ",
       location: "แนวถนนวิเศษ ตำบลราไวย์",
+      latitude: null,
+      longitude: null,
       description: "ใช้ประเมินน้ำรอการระบายและสภาพการสัญจรในช่วงฝนตก",
       category: "flood",
       streamPath: "public/flood-01",
@@ -65,6 +69,8 @@ export const PUBLIC_CAMERAS:
       name: "จุดเฝ้าระวังน้ำท่วม ซอยไสยวน",
       shortName: "ซอยไสยวน",
       location: "พื้นที่ซอยไสยวน ตำบลราไวย์",
+      latitude: null,
+      longitude: null,
       description: "ติดตามสภาพน้ำและการระบายในพื้นที่ชุมชน",
       category: "flood",
       streamPath: "public/flood-02",
@@ -77,6 +83,8 @@ export const PUBLIC_CAMERAS:
       name: "สภาพการจราจร แยกไสยวน",
       shortName: "แยกไสยวน",
       location: "แยกไสยวน ตำบลราไวย์",
+      latitude: null,
+      longitude: null,
       description: "ตรวจสอบความหนาแน่นและวางแผนเส้นทางก่อนเดินทาง",
       category: "traffic",
       streamPath: "public/traffic-01",
@@ -89,6 +97,8 @@ export const PUBLIC_CAMERAS:
       name: "สภาพการจราจร วงเวียนราไวย์",
       shortName: "วงเวียนราไวย์",
       location: "วงเวียนหาดราไวย์",
+      latitude: null,
+      longitude: null,
       description: "ติดตามปริมาณรถบริเวณทางเชื่อมชายหาดและชุมชน",
       category: "traffic",
       streamPath: "public/traffic-02",
@@ -101,6 +111,8 @@ export const PUBLIC_CAMERAS:
       name: "บรรยากาศแหลมพรหมเทพ",
       shortName: "แหลมพรหมเทพ",
       location: "แหลมพรหมเทพ จังหวัดภูเก็ต",
+      latitude: null,
+      longitude: null,
       description: "ภาพบรรยากาศและสภาพอากาศบริเวณจุดชมวิวสาธารณะ",
       category: "tourism",
       streamPath: "public/tourism-01",
@@ -113,6 +125,8 @@ export const PUBLIC_CAMERAS:
       name: "บรรยากาศหาดในหาน",
       shortName: "หาดในหาน",
       location: "หาดในหาน ตำบลราไวย์",
+      latitude: null,
+      longitude: null,
       description: "ภาพรวมพื้นที่ชายหาดเพื่อประกอบการวางแผนเดินทาง",
       category: "tourism",
       streamPath: "public/tourism-02",
@@ -125,6 +139,8 @@ export const PUBLIC_CAMERAS:
       name: "บรรยากาศท่าเทียบเรือราไวย์",
       shortName: "ท่าเทียบเรือราไวย์",
       location: "ท่าเทียบเรือหาดราไวย์",
+      latitude: null,
+      longitude: null,
       description: "ติดตามสภาพพื้นที่สาธารณะและบรรยากาศบริเวณท่าเรือ",
       category: "tourism",
       streamPath: "public/tourism-03",
@@ -172,6 +188,28 @@ function readString(
     : fallback;
 }
 
+function sanitizePublicText(
+  value: unknown,
+  fallback = "",
+) {
+  const text = readString(
+    value,
+    fallback,
+  );
+
+  return text
+    .replace(
+      /\brtsp:\/\/\S+/gi,
+      "",
+    )
+    .replace(
+      /\b(?:\d{1,3}\.){3}\d{1,3}\b/g,
+      "",
+    )
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 export function normalizePublicCamera(
   id: string,
   value: Record<string, unknown>,
@@ -179,10 +217,10 @@ export function normalizePublicCamera(
   const category =
     value.category;
   const status = value.status;
-  const name = readString(
+  const name = sanitizePublicText(
     value.name,
   );
-  const location = readString(
+  const location = sanitizePublicText(
     value.location,
   );
   const streamPath = readString(
@@ -211,13 +249,25 @@ export function normalizePublicCamera(
     id,
     name,
     shortName:
-      readString(
+      sanitizePublicText(
         value.shortName,
         name,
       ),
     location,
+    latitude:
+      typeof value.latitude === "number" &&
+      Number.isFinite(value.latitude)
+        ? value.latitude
+        : null,
+    longitude:
+      typeof value.longitude === "number" &&
+      Number.isFinite(value.longitude)
+        ? value.longitude
+        : null,
     description:
-      readString(value.description),
+      sanitizePublicText(
+        value.description,
+      ),
     category:
       category as PublicCameraCategory,
     streamPath,

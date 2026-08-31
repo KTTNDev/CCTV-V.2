@@ -10,11 +10,14 @@ import {
 import {
   Activity,
   AlertTriangle,
+  ArrowLeft,
   CalendarRange,
   Car,
   CheckCircle2,
   Clock3,
   Download,
+  Eye,
+  FilePenLine,
   FileSignature,
   FileBarChart,
   Landmark,
@@ -22,10 +25,13 @@ import {
   Loader2,
   MapPinned,
   MapPinOff,
+  Plus,
   Printer,
+  RefreshCw,
   ShieldCheck,
   Sparkles,
   Target,
+  Trash2,
   XCircle,
 } from 'lucide-react';
 
@@ -48,8 +54,10 @@ import type {
 } from '../../types';
 
 import {
+  buildExecutiveReportPdf,
   buildExecutiveReportModel,
   downloadExecutiveReportPdf,
+  type ExecutiveReportCustomization,
   type OfficialMemoCover,
 } from '../../lib/executive-report-pdf';
 
@@ -265,6 +273,26 @@ function getLocalDateInputValue(): string {
     .slice(0, 10);
 }
 
+function splitEditorItems(
+  value: string,
+): string[] {
+  return value
+    .split(/\r?\n/u)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function splitEditorParagraphs(
+  value: string,
+): string[] {
+  return value
+    .split(/\r?\n\s*\r?\n/u)
+    .map((item) =>
+      item.replace(/\s+/gu, ' ').trim(),
+    )
+    .filter(Boolean);
+}
+
 export const ReportModal = ({
   isOpen,
   onClose,
@@ -305,11 +333,42 @@ export const ReportModal = ({
           'นายกเทศมนตรีตำบลราไวย์',
         signerName: '',
         signerPosition: '',
+        signers: [
+          {
+            name: '',
+            position: '',
+          },
+        ],
         useThaiDigits: true,
         urgency: '',
         confidentiality: '',
       }),
     );
+
+  const [isPreviewOpen, setIsPreviewOpen] =
+    useState(false);
+  const [isPreviewLoading, setIsPreviewLoading] =
+    useState(false);
+  const [previewPdfUrl, setPreviewPdfUrl] =
+    useState('');
+  const [previewInitialized, setPreviewInitialized] =
+    useState(false);
+  const [editableInsights, setEditableInsights] =
+    useState('');
+  const [editableRecommendations, setEditableRecommendations] =
+    useState('');
+  const [memoBodyText, setMemoBodyText] =
+    useState('');
+  const [memoClosingText, setMemoClosingText] =
+    useState('จึงเรียนมาเพื่อโปรดทราบ');
+  const [executiveFontScale, setExecutiveFontScale] =
+    useState(1);
+  const [executiveLineSpacing, setExecutiveLineSpacing] =
+    useState(1);
+  const [memoFontSize, setMemoFontSize] =
+    useState(16);
+  const [memoLineSpacing, setMemoLineSpacing] =
+    useState(1);
 
   const updateMemoCover = <
     Key extends keyof OfficialMemoCover,
@@ -321,6 +380,100 @@ export const ReportModal = ({
       ...current,
       [key]: value,
     }));
+  };
+
+  const updateMemoSigner = (
+    index: number,
+    key: 'name' | 'position',
+    value: string,
+  ): void => {
+    setMemoCover((current) => {
+      const signers = current.signers?.length
+        ? current.signers.map(
+            (signer) => ({ ...signer }),
+          )
+        : [
+            {
+              name: current.signerName,
+              position:
+                current.signerPosition,
+            },
+          ];
+
+      signers[index] = {
+        ...signers[index],
+        [key]: value,
+      };
+
+      return {
+        ...current,
+        signers,
+        signerName:
+          signers[0]?.name ?? '',
+        signerPosition:
+          signers[0]?.position ?? '',
+      };
+    });
+  };
+
+  const addMemoSigner = (): void => {
+    setMemoCover((current) => {
+      const signers = current.signers?.length
+        ? current.signers
+        : [
+            {
+              name: current.signerName,
+              position:
+                current.signerPosition,
+            },
+          ];
+
+      if (signers.length >= 4) {
+        return current;
+      }
+
+      return {
+        ...current,
+        signers: [
+          ...signers,
+          { name: '', position: '' },
+        ],
+      };
+    });
+  };
+
+  const removeMemoSigner = (
+    index: number,
+  ): void => {
+    setMemoCover((current) => {
+      const signers = current.signers?.length
+        ? [...current.signers]
+        : [
+            {
+              name: current.signerName,
+              position:
+                current.signerPosition,
+            },
+          ];
+
+      if (signers.length === 1) {
+        signers[0] = {
+          name: '',
+          position: '',
+        };
+      } else {
+        signers.splice(index, 1);
+      }
+
+      return {
+        ...current,
+        signers,
+        signerName:
+          signers[0]?.name ?? '',
+        signerPosition:
+          signers[0]?.position ?? '',
+      };
+    });
   };
 
   const dialogRef =
@@ -448,6 +601,148 @@ export const ReportModal = ({
         visitorStats,
       ],
     );
+
+  const getDefaultMemoParagraphs =
+    (): string[] => [
+      'ตามที่เทศบาลตำบลราไวย์ได้เปิดให้บริการระบบยื่นคำร้องขอข้อมูลภาพจากกล้องวงจรปิด (CCTV) เพื่ออำนวยความสะดวกแก่ประชาชน และสนับสนุนการติดตามผลการดำเนินงานของเจ้าหน้าที่ นั้น',
+      `ศูนย์ควบคุมและสั่งการระบบ CCTV ได้จัดทำรายงานสรุปผลการดำเนินงานตามช่วง ${executiveReportModel.periodLabel} พบว่ามีคำร้องทั้งหมด ${executiveReportModel.total} รายการ ดำเนินการเสร็จ ${executiveReportModel.completed} รายการ อยู่ระหว่างดำเนินการ ${executiveReportModel.open} รายการ ค้างเกิน 7 วัน ${executiveReportModel.overdueSevenDays} รายการ และมีข้อมูลพิกัดครบถ้วนร้อยละ ${executiveReportModel.spatialCoverageRate} รายละเอียดปรากฏตามรายงานแนบท้าย`,
+      'ในการนี้ จึงขอรายงานข้อมูลดังกล่าวเพื่อใช้ประกอบการกำกับติดตาม วิเคราะห์ปัญหา จัดลำดับงานเร่งด่วน วางแผนดูแลระบบกล้องวงจรปิด และพัฒนาคุณภาพการให้บริการประชาชนให้มีประสิทธิภาพยิ่งขึ้น',
+    ];
+
+  const getPreviewCustomization =
+    (): ExecutiveReportCustomization => ({
+      insights: splitEditorItems(
+        editableInsights,
+      ),
+      recommendations: splitEditorItems(
+        editableRecommendations,
+      ),
+      memoParagraphs: splitEditorParagraphs(
+        memoBodyText,
+      ),
+      memoClosingText:
+        memoClosingText.trim(),
+      executiveFontScale,
+      executiveLineSpacing,
+      memoFontSize,
+      memoLineSpacing,
+    });
+
+  const renderPdfPreview = async (
+    customization:
+      ExecutiveReportCustomization,
+  ): Promise<void> => {
+    setIsPreviewLoading(true);
+    setExportError('');
+
+    try {
+      const pdf =
+        await buildExecutiveReportPdf({
+          requests: filteredRequests,
+          startDate,
+          endDate,
+          visitorHistory,
+          visitorStats,
+          memoCover,
+          customization,
+        });
+      const nextUrl =
+        URL.createObjectURL(
+          pdf.output('blob'),
+        );
+
+      setPreviewPdfUrl((currentUrl) => {
+        if (currentUrl) {
+          URL.revokeObjectURL(
+            currentUrl,
+          );
+        }
+
+        return nextUrl;
+      });
+    } catch (
+      previewError: unknown
+    ) {
+      console.warn(
+        'PDF preview failed:',
+        previewError,
+      );
+      setExportError(
+        'สร้างตัวอย่าง PDF ไม่สำเร็จ กรุณาตรวจสอบว่าฟอนต์รายงานอยู่ครบ แล้วลองอีกครั้ง',
+      );
+    } finally {
+      setIsPreviewLoading(false);
+    }
+  };
+
+  const openPdfPreview =
+    async (): Promise<void> => {
+      let customization =
+        getPreviewCustomization();
+
+      if (!previewInitialized) {
+        const insights =
+          executiveReportModel.insights.join(
+            '\n',
+          );
+        const recommendations =
+          executiveReportModel.recommendations.join(
+            '\n',
+          );
+        const memoBody =
+          getDefaultMemoParagraphs().join(
+            '\n\n',
+          );
+
+        setEditableInsights(insights);
+        setEditableRecommendations(
+          recommendations,
+        );
+        setMemoBodyText(memoBody);
+        setPreviewInitialized(true);
+        customization = {
+          ...customization,
+          insights:
+            executiveReportModel.insights,
+          recommendations:
+            executiveReportModel.recommendations,
+          memoParagraphs:
+            getDefaultMemoParagraphs(),
+        };
+      }
+
+      setIsPreviewOpen(true);
+      await renderPdfPreview(
+        customization,
+      );
+    };
+
+  useEffect(() => {
+    if (isOpen) return;
+
+    setIsPreviewOpen(false);
+    setPreviewInitialized(false);
+    setPreviewPdfUrl((currentUrl) => {
+      if (currentUrl) {
+        URL.revokeObjectURL(
+          currentUrl,
+        );
+      }
+
+      return '';
+    });
+  }, [isOpen]);
+
+  useEffect(
+    () => () => {
+      if (previewPdfUrl) {
+        URL.revokeObjectURL(
+          previewPdfUrl,
+        );
+      }
+    },
+    [previewPdfUrl],
+  );
 
   const processedTrafficData =
     useMemo(() => {
@@ -593,7 +888,7 @@ export const ReportModal = ({
         const color =
           request.status ===
           'completed'
-            ? '#10b981'
+            ? '#43b99a'
             : '#3b82f6';
 
         const eventLabel =
@@ -735,6 +1030,8 @@ export const ReportModal = ({
           visitorHistory,
           visitorStats,
           memoCover,
+          customization:
+            getPreviewCustomization(),
         });
       } catch (
         exportError: unknown
@@ -788,15 +1085,200 @@ export const ReportModal = ({
               ))}
             </div>
             <div className="flex items-center gap-2">
-              <button type="button" onClick={exportPDF} disabled={isExporting} aria-live="polite" className="bg-slate-900 text-white px-4 py-2.5 md:px-6 md:py-3 rounded-xl md:rounded-2xl font-bold text-[9px] md:text-[10px] hover:bg-slate-800 shadow-xl flex items-center gap-2 transition-all disabled:cursor-not-allowed disabled:opacity-60">
-                {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} <span>{isExporting ? 'กำลังจัดหน้า…' : 'ดาวน์โหลด PDF A4'}</span>
+              <button type="button" onClick={openPdfPreview} disabled={isExporting || isPreviewLoading} aria-live="polite" className="bg-slate-900 text-white px-4 py-2.5 md:px-6 md:py-3 rounded-xl md:rounded-2xl font-bold text-[9px] md:text-[10px] hover:bg-slate-800 shadow-xl flex items-center gap-2 transition-all disabled:cursor-not-allowed disabled:opacity-60">
+                {isPreviewLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />} <span>{isPreviewLoading ? 'กำลังสร้างตัวอย่าง…' : 'ตรวจและแก้ไข PDF'}</span>
               </button>
               <button type="button" onClick={onClose} disabled={isExporting} aria-label="ปิดรายงานวิเคราะห์" className="p-2.5 md:p-3 bg-white text-slate-300 hover:text-red-500 rounded-xl md:rounded-2xl border border-slate-100 transition-all hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"><XCircle className="w-5 h-5 md:w-6 md:h-6"/></button>
             </div>
           </div>
         </div>
 
-        {/* 📄 Content Area - ปรับ Padding ด้านใน */}
+        {isPreviewOpen ? (
+          <div className="flex min-h-0 flex-1 flex-col bg-slate-100 lg:flex-row">
+            <aside className="w-full shrink-0 overflow-y-auto border-b border-slate-200 bg-white p-5 custom-scrollbar lg:w-[390px] lg:border-b-0 lg:border-r lg:p-6">
+              <button
+                type="button"
+                onClick={() => setIsPreviewOpen(false)}
+                className="mb-5 inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-[10px] font-bold text-slate-600 transition hover:bg-slate-50"
+              >
+                <ArrowLeft className="h-4 w-4" aria-hidden="true" /> กลับไปหน้ารายงาน
+              </button>
+
+              <div className="flex items-start gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+                  <FilePenLine className="h-5 w-5" aria-hidden="true" />
+                </span>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">แก้ไขก่อนสร้าง PDF</h3>
+                  <p className="mt-1 text-[10px] leading-5 text-slate-500">แก้ข้อความและระยะจัดหน้า แล้วกด “อัปเดตตัวอย่าง” เพื่อดูหน้ากระดาษจริง</p>
+                </div>
+              </div>
+
+              <div className="mt-6 space-y-5">
+                {memoCover.enabled && (
+                  <section className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50/50 p-4">
+                    <div>
+                      <p className="text-[9px] font-bold uppercase tracking-widest text-amber-700">หน้า 1 • บันทึกข้อความ</p>
+                      <p className="mt-1 text-[10px] text-slate-500">เว้นหนึ่งบรรทัดเพื่อแบ่งย่อหน้า</p>
+                    </div>
+                    <label className="block space-y-1.5 text-[10px] font-bold text-slate-600">
+                      เรื่อง
+                      <input
+                        type="text"
+                        value={memoCover.subject}
+                        onChange={(event) => updateMemoCover('subject', event.target.value)}
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-medium text-slate-900 outline-none focus:border-amber-500"
+                      />
+                    </label>
+                    <label className="block space-y-1.5 text-[10px] font-bold text-slate-600">
+                      เรียน
+                      <input
+                        type="text"
+                        value={memoCover.recipient}
+                        onChange={(event) => updateMemoCover('recipient', event.target.value)}
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-medium text-slate-900 outline-none focus:border-amber-500"
+                      />
+                    </label>
+                    <label className="block space-y-1.5 text-[10px] font-bold text-slate-600">
+                      เนื้อหาบันทึก
+                      <textarea
+                        value={memoBodyText}
+                        onChange={(event) => setMemoBodyText(event.target.value)}
+                        rows={11}
+                        className="w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-medium leading-5 text-slate-900 outline-none focus:border-amber-500"
+                      />
+                    </label>
+                    <label className="block space-y-1.5 text-[10px] font-bold text-slate-600">
+                      ข้อความลงท้าย
+                      <input
+                        type="text"
+                        value={memoClosingText}
+                        onChange={(event) => setMemoClosingText(event.target.value)}
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-medium text-slate-900 outline-none focus:border-amber-500"
+                      />
+                    </label>
+                    <div className="space-y-2 rounded-xl border border-amber-100 bg-white p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-700">ผู้ลงนาม</p>
+                          <p className="text-[9px] text-slate-400">จัดแนวเดียวกัน คนที่ 2 เป็นต้นไปมีส่วนความเห็น 2 บรรทัด</p>
+                        </div>
+                        <button type="button" onClick={addMemoSigner} disabled={(memoCover.signers?.length ?? 1) >= 4} className="inline-flex items-center gap-1 rounded-lg bg-amber-100 px-2.5 py-2 text-[9px] font-bold text-amber-800 disabled:cursor-not-allowed disabled:opacity-40">
+                          <Plus className="h-3.5 w-3.5" aria-hidden="true" /> เพิ่ม
+                        </button>
+                      </div>
+                      {(memoCover.signers?.length ? memoCover.signers : [{ name: memoCover.signerName, position: memoCover.signerPosition }]).map((signer, index) => (
+                        <div key={`preview-signer-${index}`} className="grid grid-cols-[1fr_auto] gap-2 rounded-lg bg-amber-50/60 p-2">
+                          <div className="grid gap-2">
+                            <input type="text" value={signer.name} onChange={(event) => updateMemoSigner(index, 'name', event.target.value)} aria-label={`ชื่อผู้ลงนามคนที่ ${index + 1}`} placeholder={`ชื่อผู้ลงนามคนที่ ${index + 1}`} className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-[10px] text-slate-900 outline-none focus:border-amber-500" />
+                            <input type="text" value={signer.position} onChange={(event) => updateMemoSigner(index, 'position', event.target.value)} aria-label={`ตำแหน่งผู้ลงนามคนที่ ${index + 1}`} placeholder="ตำแหน่ง" className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-[10px] text-slate-900 outline-none focus:border-amber-500" />
+                          </div>
+                          <button type="button" onClick={() => removeMemoSigner(index)} aria-label={`ลบผู้ลงนามคนที่ ${index + 1}`} className="self-center rounded-lg p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-600">
+                            <Trash2 className="h-4 w-4" aria-hidden="true" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <label className="space-y-1.5 text-[9px] font-bold text-slate-500">
+                        ขนาดตัวอักษร
+                        <select value={memoFontSize} onChange={(event) => setMemoFontSize(Number(event.target.value))} className="w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-[10px] text-slate-800">
+                          <option value={14}>14 pt</option>
+                          <option value={15}>15 pt</option>
+                          <option value={16}>16 pt (มาตรฐาน)</option>
+                          <option value={17}>17 pt</option>
+                          <option value={18}>18 pt</option>
+                        </select>
+                      </label>
+                      <label className="space-y-1.5 text-[9px] font-bold text-slate-500">
+                        ระยะบรรทัด
+                        <select value={memoLineSpacing} onChange={(event) => setMemoLineSpacing(Number(event.target.value))} className="w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-[10px] text-slate-800">
+                          <option value={0.9}>กระชับ</option>
+                          <option value={1}>ปกติ</option>
+                          <option value={1.15}>โปร่ง</option>
+                          <option value={1.3}>โปร่งมาก</option>
+                        </select>
+                      </label>
+                    </div>
+                  </section>
+                )}
+
+                <section className="space-y-3 rounded-2xl border border-blue-100 bg-blue-50/40 p-4">
+                  <div>
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-blue-700">หน้าสรุปผู้บริหาร</p>
+                    <p className="mt-1 text-[10px] text-slate-500">หนึ่งบรรทัดต่อหนึ่งหัวข้อ</p>
+                  </div>
+                  <label className="block space-y-1.5 text-[10px] font-bold text-slate-600">
+                    ประเด็นสำคัญ
+                    <textarea value={editableInsights} onChange={(event) => setEditableInsights(event.target.value)} rows={5} className="w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-medium leading-5 text-slate-900 outline-none focus:border-blue-500" />
+                  </label>
+                  <label className="block space-y-1.5 text-[10px] font-bold text-slate-600">
+                    ข้อเสนอแนะ
+                    <textarea value={editableRecommendations} onChange={(event) => setEditableRecommendations(event.target.value)} rows={6} className="w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-medium leading-5 text-slate-900 outline-none focus:border-blue-500" />
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="space-y-1.5 text-[9px] font-bold text-slate-500">
+                      ขนาดข้อความ
+                      <select value={executiveFontScale} onChange={(event) => setExecutiveFontScale(Number(event.target.value))} className="w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-[10px] text-slate-800">
+                        <option value={0.9}>เล็ก</option>
+                        <option value={1}>ปกติ</option>
+                        <option value={1.1}>ใหญ่</option>
+                      </select>
+                    </label>
+                    <label className="space-y-1.5 text-[9px] font-bold text-slate-500">
+                      ระยะบรรทัด
+                      <select value={executiveLineSpacing} onChange={(event) => setExecutiveLineSpacing(Number(event.target.value))} className="w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-[10px] text-slate-800">
+                        <option value={0.9}>กระชับ</option>
+                        <option value={1}>ปกติ</option>
+                        <option value={1.15}>โปร่ง</option>
+                      </select>
+                    </label>
+                  </div>
+                </section>
+
+                {exportError && (
+                  <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-[10px] font-semibold leading-5 text-red-700">{exportError}</div>
+                )}
+
+                <div className="sticky bottom-0 grid gap-2 border-t border-slate-100 bg-white/95 pt-4 backdrop-blur">
+                  <button type="button" onClick={() => renderPdfPreview(getPreviewCustomization())} disabled={isPreviewLoading || isExporting} className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-[10px] font-bold text-white shadow-lg shadow-blue-100 transition hover:bg-blue-700 disabled:opacity-60">
+                    {isPreviewLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} {isPreviewLoading ? 'กำลังจัดหน้า…' : 'อัปเดตตัวอย่าง'}
+                  </button>
+                  <button type="button" onClick={exportPDF} disabled={isPreviewLoading || isExporting || !previewPdfUrl} className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-[10px] font-bold text-white transition hover:bg-slate-800 disabled:opacity-60">
+                    {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} {isExporting ? 'กำลังสร้างไฟล์…' : 'ดาวน์โหลด PDF ฉบับนี้'}
+                  </button>
+                </div>
+              </div>
+            </aside>
+
+            <section className="flex min-h-[55vh] min-w-0 flex-1 flex-col p-3 sm:p-5 lg:min-h-0 lg:p-6" aria-label="ตัวอย่างเอกสาร PDF">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="text-xs font-bold text-slate-800">ตัวอย่างหน้ากระดาษจริง</p>
+                  <p className="mt-0.5 text-[9px] text-slate-500">หน้าแรก A4 แนวตั้ง • หน้าวิเคราะห์ A4 แนวนอน</p>
+                </div>
+                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[9px] font-bold text-emerald-700">PDF Preview</span>
+              </div>
+              <div className="relative min-h-[520px] flex-1 overflow-hidden rounded-2xl border border-slate-300 bg-slate-700 shadow-2xl">
+                {isPreviewLoading && (
+                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-slate-900/75 text-white backdrop-blur-sm">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                    <p className="text-xs font-bold">กำลังจัดหน้ากระดาษ A4…</p>
+                  </div>
+                )}
+                {previewPdfUrl ? (
+                  <iframe title="ตัวอย่างรายงาน PDF ก่อนดาวน์โหลด" src={`${previewPdfUrl}#view=FitH&toolbar=1`} className="h-full min-h-[520px] w-full bg-white" />
+                ) : (
+                  <div className="flex h-full min-h-[520px] flex-col items-center justify-center gap-3 text-slate-300">
+                    <Eye className="h-10 w-10" aria-hidden="true" />
+                    <p className="text-xs font-bold">กำลังเตรียมตัวอย่างรายงาน</p>
+                  </div>
+                )}
+              </div>
+            </section>
+          </div>
+        ) : (
+        /* 📄 Content Area - ปรับ Padding ด้านใน */
         <div className="flex-1 overflow-y-auto custom-scrollbar bg-white">
           <div className="space-y-8 p-5 sm:p-6 md:space-y-12 md:p-12">
 
@@ -905,26 +1387,39 @@ export const ReportModal = ({
                       className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-xs font-medium text-slate-900 outline-none transition focus:border-amber-500 focus:ring-4 focus:ring-amber-100"
                     />
                   </label>
-                  <label className="space-y-1.5 text-[10px] font-bold text-slate-600">
-                    ชื่อผู้ลงนาม
-                    <input
-                      type="text"
-                      value={memoCover.signerName}
-                      onChange={(event) => updateMemoCover('signerName', event.target.value)}
-                      placeholder="เว้นว่างเพื่อแสดงเส้นสำหรับลงนาม"
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-xs font-medium text-slate-900 outline-none transition focus:border-amber-500 focus:ring-4 focus:ring-amber-100"
-                    />
-                  </label>
-                  <label className="space-y-1.5 text-[10px] font-bold text-slate-600">
-                    ตำแหน่งผู้ลงนาม
-                    <input
-                      type="text"
-                      value={memoCover.signerPosition}
-                      onChange={(event) => updateMemoCover('signerPosition', event.target.value)}
-                      placeholder="เช่น ผู้ช่วยนักวิชาการคอมพิวเตอร์"
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-xs font-medium text-slate-900 outline-none transition focus:border-amber-500 focus:ring-4 focus:ring-amber-100"
-                    />
-                  </label>
+                  <div className="space-y-3 rounded-2xl border border-amber-100 bg-amber-50/40 p-4 md:col-span-2">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-700">รายชื่อผู้ลงนาม</p>
+                        <p className="mt-1 text-[9px] leading-4 text-slate-500">เพิ่มได้สูงสุด 4 คน ชื่อและตำแหน่งทุกคนอยู่แนวเดียวกับคนแรก พร้อมพื้นที่เซ็นประมาณ 4 บรรทัด โดยคนที่ 2 เป็นต้นไประบบจะสร้างหัวข้อ “ความเห็น + ตำแหน่ง” และเส้นประ 2 บรรทัดให้อัตโนมัติ</p>
+                      </div>
+                      <button type="button" onClick={addMemoSigner} disabled={(memoCover.signers?.length ?? 1) >= 4} className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-amber-100 px-3 py-2.5 text-[10px] font-bold text-amber-800 transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-40">
+                        <Plus className="h-4 w-4" aria-hidden="true" /> เพิ่มผู้ลงนาม
+                      </button>
+                    </div>
+                    <div className="space-y-3">
+                      {(memoCover.signers?.length ? memoCover.signers : [{ name: memoCover.signerName, position: memoCover.signerPosition }]).map((signer, index) => (
+                        <div key={`memo-signer-${index}`} className="rounded-xl border border-amber-100 bg-white p-3">
+                          <div className="mb-2 flex items-center justify-between">
+                            <p className="text-[9px] font-bold text-amber-700">ผู้ลงนามคนที่ {index + 1}{index > 0 ? ' • มีส่วนความเห็นก่อนลงนาม' : ''}</p>
+                            <button type="button" onClick={() => removeMemoSigner(index)} aria-label={`ลบผู้ลงนามคนที่ ${index + 1}`} className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600">
+                              <Trash2 className="h-4 w-4" aria-hidden="true" />
+                            </button>
+                          </div>
+                          <div className="grid gap-2">
+                            <label className="space-y-1 text-[9px] font-bold text-slate-500">
+                              ชื่อ-นามสกุล
+                              <input type="text" value={signer.name} onChange={(event) => updateMemoSigner(index, 'name', event.target.value)} placeholder="เว้นว่างเพื่อแสดงเส้นสำหรับลงนาม" className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-xs font-medium text-slate-900 outline-none focus:border-amber-500" />
+                            </label>
+                            <label className="space-y-1 text-[9px] font-bold text-slate-500">
+                              ตำแหน่ง
+                              <input type="text" value={signer.position} onChange={(event) => updateMemoSigner(index, 'position', event.target.value)} placeholder="เช่น หัวหน้าศูนย์ควบคุมและสั่งการระบบ CCTV" className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-xs font-medium text-slate-900 outline-none focus:border-amber-500" />
+                            </label>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                   <label className="space-y-1.5 text-[10px] font-bold text-slate-600">
                     ชั้นความเร็ว
                     <select
@@ -971,7 +1466,7 @@ export const ReportModal = ({
               </div>
             )}
 
-            <section className="overflow-hidden rounded-[2rem] bg-[#0f2942] text-white shadow-2xl shadow-slate-200">
+            <section className="overflow-hidden rounded-[2rem] bg-[#201c56] text-white shadow-2xl shadow-slate-200">
               <div className="grid gap-8 p-6 md:grid-cols-[1.15fr_0.85fr] md:p-9">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
@@ -1000,7 +1495,7 @@ export const ReportModal = ({
                   <ol className="mt-4 space-y-4">
                     {executiveReportModel.recommendations.slice(0, 4).map((recommendation, index) => (
                       <li key={recommendation} className="flex gap-3">
-                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-400 text-[10px] font-black text-[#0f2942]">{index + 1}</span>
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#43b99a] text-[10px] font-black text-[#201c56]">{index + 1}</span>
                         <p className="text-[11px] leading-5 text-slate-200">{recommendation}</p>
                       </li>
                     ))}
@@ -1099,7 +1594,7 @@ export const ReportModal = ({
                      <Area type="monotone" dataKey="views" name="ยอดผู้เข้าชม" stroke="#3b82f6" strokeWidth={4} fill="url(#colorViews)">
                         <LabelList dataKey="views" position="top" style={{ fontSize: '9px', fontWeight: 'bold', fill: '#3b82f6' }} />
                      </Area>
-                     <Area type="monotone" dataKey="requests" name="จำนวนคำร้อง" stroke="#10b981" strokeWidth={3} fillOpacity={0} />
+                     <Area type="monotone" dataKey="requests" name="จำนวนคำร้อง" stroke="#43b99a" strokeWidth={3} fillOpacity={0} />
                      <Legend verticalAlign="top" align="right" wrapperStyle={{paddingBottom: '20px', fontSize: '10px', fontWeight: 'bold'}} />
                    </AreaChart>
                  </ResponsiveContainer>
@@ -1232,6 +1727,7 @@ export const ReportModal = ({
 
           </div>
         </div>
+        )}
       </div>
     </div>
   );

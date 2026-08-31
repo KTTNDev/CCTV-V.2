@@ -21,7 +21,7 @@ const GLOBAL_ANALYTICS_DOCUMENT =
 const CACHE_LIFETIME_MS =
   60 * 1000;
 
-const MAX_ACCIDENT_DOCUMENTS =
+const MAX_SPATIAL_DOCUMENTS =
   500;
 
 const PUBLIC_REQUEST_STATUSES = [
@@ -166,13 +166,6 @@ function createPublicHotspots(
 
   for (const document of documents) {
     if (
-      document.eventType !==
-      "ACCIDENT"
-    ) {
-      continue;
-    }
-
-    if (
       typeof document.status !==
         "string" ||
       !PUBLIC_REQUEST_STATUSES.includes(
@@ -239,8 +232,8 @@ function createPublicHotspots(
       ...point,
       location:
         point.count > 1
-          ? `พบรายงานอุบัติเหตุ ${point.count} รายการในบริเวณนี้`
-          : "บริเวณที่เคยมีรายงานอุบัติเหตุ",
+          ? `พบคำร้อง ${point.count} รายการในบริเวณนี้`
+          : "บริเวณที่เคยมีคำร้องผ่านระบบ",
     }));
 }
 
@@ -265,7 +258,7 @@ Promise<CachedRequestStatistics["data"]> {
     totalSnapshot,
     completedSnapshot,
     pendingSnapshot,
-    accidentSnapshot,
+    spatialSnapshot,
   ] = await Promise.all([
     requestCollection
       .where(
@@ -300,12 +293,14 @@ Promise<CachedRequestStatistics["data"]> {
 
     requestCollection
       .where(
-        "eventType",
-        "==",
-        "ACCIDENT",
+        "status",
+        "in",
+        [
+          ...PUBLIC_REQUEST_STATUSES,
+        ],
       )
       .limit(
-        MAX_ACCIDENT_DOCUMENTS,
+        MAX_SPATIAL_DOCUMENTS,
       )
       .get(),
   ]);
@@ -326,8 +321,8 @@ Promise<CachedRequestStatistics["data"]> {
         )
       : 0;
 
-  const accidentDocuments =
-    accidentSnapshot.docs.map(
+  const spatialDocuments =
+    spatialSnapshot.docs.map(
       (document) =>
         document.data(),
     );
@@ -342,7 +337,7 @@ Promise<CachedRequestStatistics["data"]> {
 
     hotspots:
       createPublicHotspots(
-        accidentDocuments,
+        spatialDocuments,
       ),
   };
 

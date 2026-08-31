@@ -309,6 +309,9 @@ async function finalizeDraftRequest(input, user) {
             eventTimeStart: getRequiredRequestString(currentData, "eventTimeStart", 10),
             eventTimeEnd: getRequiredRequestString(currentData, "eventTimeEnd", 10),
             location: getRequiredRequestString(currentData, "location", 300),
+            submittedAt: submittedAt
+                .toDate()
+                .toISOString(),
             retryKey: notificationRetryKey,
             createdAt: submittedAt,
             updatedAt: submittedAt,

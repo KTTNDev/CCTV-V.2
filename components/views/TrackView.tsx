@@ -14,6 +14,7 @@ import {
   ArrowLeft,
   CalendarDays,
   CheckCircle2,
+  ChevronDown,
   Clock,
   Eye,
   EyeOff,
@@ -803,18 +804,16 @@ React.FC<TrackViewProps> = ({
             </section>
           )}
 
-          <section className="bg-white border border-slate-200 rounded-3xl shadow-lg shadow-slate-200/30 overflow-hidden">
-            <div className="p-7 sm:p-9 border-b border-slate-100">
-              <h3 className="font-bold text-xl">
-                รายละเอียดคำร้อง
-              </h3>
+          <details className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-lg shadow-slate-200/30">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-5 sm:p-7">
+              <span>
+                <span className="block text-lg font-bold text-slate-900 sm:text-xl">รายละเอียดคำร้อง</span>
+                <span className="mt-1 block text-xs text-slate-500 sm:text-sm">วัน เวลา สถานที่ และช่องทางรับผล</span>
+              </span>
+              <ChevronDown className="h-5 w-5 text-slate-400 transition group-open:rotate-180" />
+            </summary>
 
-              <p className="text-sm text-slate-500 mt-1">
-                แสดงเฉพาะข้อมูลที่จำเป็นสำหรับยืนยันคำร้อง
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-px bg-slate-100">
+            <div className="grid gap-px border-t border-slate-100 bg-slate-100 md:grid-cols-2">
               <div className="bg-white p-7">
                 <div className="flex items-center gap-3 text-slate-500 mb-3">
                   <CalendarDays className="w-5 h-5" />
@@ -879,23 +878,25 @@ React.FC<TrackViewProps> = ({
                 </p>
               </div>
             </div>
-          </section>
+          </details>
 
-          <section className="bg-white border border-slate-200 rounded-3xl p-7 sm:p-9 shadow-lg shadow-slate-200/30">
-            <div className="flex items-center gap-3 mb-8">
+          <details className="group rounded-3xl border border-slate-200 bg-white shadow-lg shadow-slate-200/30">
+            <summary className="flex cursor-pointer list-none items-center gap-3 p-5 sm:p-7">
               <History className="w-5 h-5 text-slate-500" />
 
-              <div>
-                <h3 className="font-bold text-xl">
+              <span className="min-w-0 flex-1">
+                <span className="block text-lg font-bold text-slate-900 sm:text-xl">
                   ประวัติการดำเนินงาน
-                </h3>
+                </span>
 
-                <p className="text-sm text-slate-500">
-                  เรียงจากรายการล่าสุด
-                </p>
-              </div>
-            </div>
+                <span className="block text-xs text-slate-500 sm:text-sm">
+                  {sortedHistory.length} รายการ · ล่าสุดก่อน
+                </span>
+              </span>
+              <ChevronDown className="h-5 w-5 text-slate-400 transition group-open:rotate-180" />
+            </summary>
 
+            <div className="border-t border-slate-100 px-5 pb-5 pt-4 sm:px-7 sm:pb-7">
             {sortedHistory.length > 0 ? (
               <div className="space-y-4">
                 {sortedHistory.map(
@@ -953,7 +954,8 @@ React.FC<TrackViewProps> = ({
                 ยังไม่มีประวัติการดำเนินงาน
               </p>
             )}
-          </section>
+            </div>
+          </details>
         </div>
       )}
     </div>

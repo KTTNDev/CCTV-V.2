@@ -1,5 +1,6 @@
 import {
   Building2,
+  BookOpen,
   Clock3,
   LockKeyhole,
   PhoneCall,
@@ -11,13 +12,15 @@ const CONTACT_PHONE =
 
 interface FooterProps {
   onAdminClick?: () => void;
+  onGuideClick?: () => void;
 }
 
 const Footer = ({
   onAdminClick,
+  onGuideClick,
 }: FooterProps) => (
-  <footer aria-label="ข้อมูลหน่วยงาน" className="relative z-[110] border-t border-slate-200 bg-white">
-    <div className="mx-auto max-w-7xl px-5 py-12 sm:px-6 lg:px-8">
+  <footer aria-label="ข้อมูลหน่วยงาน" className="relative z-0 border-t border-slate-200 bg-white">
+    <div className="mx-auto max-w-7xl px-5 pb-[calc(11rem+env(safe-area-inset-bottom))] pt-10 sm:px-6 md:py-12 lg:px-8">
       <div className="grid gap-10 lg:grid-cols-[1.35fr_1fr_1fr]">
         <section>
           <div className="flex items-center gap-3">
@@ -124,7 +127,7 @@ const Footer = ({
 
         <div className="flex flex-wrap items-center gap-4">
           <p>
-            ดูแลระบบโดยฝ่ายนโยบายและแผน
+            พัฒนาระบบโดย นายกิตตินันท์ พลรบ ผู้ช่วยนักวิชาการคอมพิวเตอร์
           </p>
 
           {onAdminClick && (
@@ -135,6 +138,12 @@ const Footer = ({
             >
               <LockKeyhole className="h-3.5 w-3.5" aria-hidden="true" />
               สำหรับเจ้าหน้าที่
+            </button>
+          )}
+          {onGuideClick && (
+            <button type="button" onClick={onGuideClick} className="inline-flex items-center gap-2 rounded-lg px-2 py-1 font-semibold text-slate-400 transition hover:bg-slate-50 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-100">
+              <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />
+              คู่มือการใช้งาน
             </button>
           )}
         </div>

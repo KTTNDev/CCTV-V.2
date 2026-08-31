@@ -163,16 +163,6 @@ React.FC<SuccessViewProps> = ({
         </p>
       </div>
 
-      <div className="mx-auto mb-6 max-w-xl rounded-3xl border border-amber-200 bg-amber-50 p-4 text-left">
-        <div className="flex items-start gap-3">
-          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" aria-hidden="true" />
-          <div>
-            <p className="text-sm font-bold text-amber-900">กรุณาบันทึกรหัสลับตอนนี้</p>
-            <p className="mt-1 text-xs leading-relaxed text-amber-800">รหัสติดตามแบบปลอดภัยจะแสดงในหน้านี้หลังยื่นสำเร็จ โปรดคัดลอกและเก็บไว้ในที่ปลอดภัยก่อนออกจากหน้านี้</p>
-          </div>
-        </div>
-      </div>
-
       <div className="mx-auto mb-8 max-w-xl rounded-3xl border border-slate-200 bg-white p-6 text-left shadow-sm">
         <div className="flex items-start gap-3 mb-5">
           <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center shrink-0">
@@ -185,8 +175,7 @@ React.FC<SuccessViewProps> = ({
             </h3>
 
             <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-              ต้องใช้รหัสฉบับเต็มนี้เพื่อตรวจสอบสถานะ
-              โปรดเก็บเป็นความลับและไม่เผยแพร่สู่สาธารณะ
+              คัดลอกรหัสฉบับเต็มและเก็บไว้เป็นความลับก่อนออกจากหน้านี้
             </p>
           </div>
         </div>
@@ -251,31 +240,27 @@ React.FC<SuccessViewProps> = ({
       <section aria-labelledby="success-next-steps" className="mb-8 rounded-3xl border border-slate-200 bg-white p-6 text-left shadow-sm sm:p-8">
         <div className="mb-6 flex items-center justify-between gap-4">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600">Next steps</p>
-            <h3 id="success-next-steps" className="mt-1 text-xl font-bold text-slate-900">ขั้นตอนต่อไป</h3>
+            <h3 id="success-next-steps" className="text-xl font-bold text-slate-900">ขั้นตอนต่อไป</h3>
           </div>
           <ArrowRight className="h-5 w-5 text-slate-300" aria-hidden="true" />
         </div>
 
-        <ol className="grid gap-4 sm:grid-cols-3">
-          <li className="rounded-2xl bg-slate-50 p-4">
+        <ol className="relative space-y-0 before:absolute before:bottom-6 before:left-[1.1rem] before:top-6 before:w-px before:bg-slate-200 sm:grid sm:grid-cols-3 sm:gap-6 sm:space-y-0 sm:before:bottom-auto sm:before:left-[16.66%] sm:before:right-[16.66%] sm:before:top-[1.1rem] sm:before:h-px sm:before:w-auto">
+          <li className="relative flex gap-3 pb-5 sm:flex-col sm:items-center sm:pb-0 sm:text-center">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-100 text-blue-700"><KeyRound className="h-4 w-4" aria-hidden="true" /></span>
-            <p className="mt-3 text-sm font-bold text-slate-900">1. เก็บรหัสติดตาม</p>
-            <p className="mt-1 text-xs leading-relaxed text-slate-500">คัดลอกรหัสฉบับเต็มและเก็บเป็นความลับ</p>
+            <div><p className="text-sm font-bold text-slate-900 sm:mt-3">เก็บรหัสติดตาม</p><p className="mt-1 text-xs leading-relaxed text-slate-500">คัดลอกและเก็บเป็นความลับ</p></div>
           </li>
-          <li className="rounded-2xl bg-slate-50 p-4">
+          <li className="relative flex gap-3 pb-5 sm:flex-col sm:items-center sm:pb-0 sm:text-center">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700"><SearchCheck className="h-4 w-4" aria-hidden="true" /></span>
-            <p className="mt-3 text-sm font-bold text-slate-900">2. รอการตรวจสอบ</p>
-            <p className="mt-1 text-xs leading-relaxed text-slate-500">เจ้าหน้าที่จะตรวจเอกสารและค้นหาภาพตามลำดับ</p>
+            <div><p className="text-sm font-bold text-slate-900 sm:mt-3">รอการตรวจสอบ</p><p className="mt-1 text-xs leading-relaxed text-slate-500">เจ้าหน้าที่ตรวจเอกสารและค้นหาภาพ</p></div>
           </li>
-          <li className="rounded-2xl bg-slate-50 p-4">
+          <li className="relative flex gap-3 sm:flex-col sm:items-center sm:text-center">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700"><MessageCircleMore className="h-4 w-4" aria-hidden="true" /></span>
-            <p className="mt-3 text-sm font-bold text-slate-900">3. รับผลการดำเนินงาน</p>
-            <p className="mt-1 text-xs leading-relaxed text-slate-500">
+            <div><p className="text-sm font-bold text-slate-900 sm:mt-3">รับผลการดำเนินงาน</p><p className="mt-1 text-xs leading-relaxed text-slate-500">
               {submissionResult.deliveryMethod === 'LINE'
                 ? 'ติดตามข้อความและรับผลผ่าน LINE OA ตามที่เลือกไว้'
                 : 'เมื่อสถานะเสร็จสิ้น ให้นำอุปกรณ์จัดเก็บข้อมูลมาติดต่อศูนย์ CCTV'}
-            </p>
+            </p></div>
           </li>
         </ol>
       </section>

@@ -46,11 +46,16 @@ import {
  * เพื่อให้ระบบรันโค้ดสามารถค้นหาตำแหน่งไฟล์ในโฟลเดอร์ src ได้ถูกต้อง
  */
 import { isAllowedAdminEmail } from '../lib/adminEmails';
+import {
+  ADMIN_REQUEST_QUERY_PARAM,
+  getAdminRequestIdFromSearch,
+} from '../lib/admin-deep-link';
 import { FormDataState, FileState } from '../types';
 
 
 // ส่วนประกอบ UI ปกติ
 import ConsentModal from '../components/ui/ConsentModal';
+import PublicGuide from '../components/ui/PublicGuide';
 import MascotHelp from '../components/ui/MascotHelp';
 import HomeView from '../components/views/HomeView';
 import RequestView from '../components/views/RequestView';
@@ -203,6 +208,35 @@ const App = () => {
   // สถานะการควบคุมหน้าจอ: home, request, track, success, admin-login, admin-dashboard
   const [view, setView] = useState('home');
 
+  const [
+    initialAdminRequestId,
+    setInitialAdminRequestId,
+  ] = useState<string | null>(null);
+
+  useEffect(() => {
+    const requestId =
+      getAdminRequestIdFromSearch(
+        window.location.search,
+      );
+
+    if (!requestId) {
+      return;
+    }
+
+    setInitialAdminRequestId(
+      requestId,
+    );
+
+    setView(
+      auth.currentUser &&
+        isAllowedAdminEmail(
+          auth.currentUser.email,
+        )
+        ? 'admin-dashboard'
+        : 'admin-login',
+    );
+  }, []);
+
   useEffect(() => {
     window.scrollTo({
       top: 0,
@@ -211,6 +245,7 @@ const App = () => {
     });
   }, [view]);
   const [showConsent, setShowConsent] = useState(false);
+  const [showPublicGuide, setShowPublicGuide] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -302,6 +337,24 @@ const [
   const handleAdminLoginSuccess = () => {
     setIsAdmin(true);
     setView('admin-dashboard');
+  };
+
+  const handleAdminRequestOpened = () => {
+    const currentUrl = new URL(
+      window.location.href,
+    );
+
+    currentUrl.searchParams.delete(
+      ADMIN_REQUEST_QUERY_PARAM,
+    );
+
+    window.history.replaceState(
+      null,
+      '',
+      currentUrl,
+    );
+
+    setInitialAdminRequestId(null);
   };
 
   /**
@@ -652,8 +705,17 @@ if (!authChecked) {
           view={view} 
           setView={setView} 
           onRequestClick={handleRequestClick} 
+          onGuideClick={() => setShowPublicGuide(true)}
+          guideOpen={showPublicGuide}
         />
       )}
+
+      <PublicGuide
+        isOpen={showPublicGuide}
+        onClose={() => setShowPublicGuide(false)}
+        onNavigate={setView}
+        onRequestClick={handleRequestClick}
+      />
 
       {showConsent && (
         <ConsentModal 
@@ -716,6 +778,7 @@ if (!authChecked) {
         {view === 'live-cameras' && (
           <LiveCamerasView
             setView={setView}
+            onGuideClick={() => setShowPublicGuide(true)}
           />
         )}
 
@@ -733,7 +796,15 @@ if (!authChecked) {
 
         {/* หน้าแดชบอร์ดหลักของเจ้าหน้าที่ (แสดงเมื่อล็อกอินแล้วเท่านั้น) */}
         {view === 'admin-dashboard' && isAdmin && (
-          <AdminView onLogout={handleAdminLogout} />
+          <AdminView
+            onLogout={handleAdminLogout}
+            initialRequestId={
+              initialAdminRequestId
+            }
+            onInitialRequestHandled={
+              handleAdminRequestOpened
+            }
+          />
         )}
       </main>
 
@@ -743,6 +814,7 @@ if (!authChecked) {
           onAdminClick={() =>
             setView('admin-login')
           }
+          onGuideClick={() => setShowPublicGuide(true)}
         />
       )}
 

@@ -4,6 +4,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
@@ -62,9 +63,12 @@ import {
   EVENT_TYPE_TH,
   STATUS_TH,
 } from "../admin/utils/formatters";
+import ThemeToggle from "../ui/ThemeToggle";
 
 interface AdminViewProps {
   onLogout: () => void;
+  initialRequestId?: string | null;
+  onInitialRequestHandled?: () => void;
 }
 
 interface VisitorHistoryItem {
@@ -75,6 +79,8 @@ interface VisitorHistoryItem {
 
 const AdminView: React.FC<AdminViewProps> = ({
   onLogout,
+  initialRequestId = null,
+  onInitialRequestHandled,
 }) => {
   const [requests, setRequests] = useState<
     CCTVRequest[]
@@ -90,6 +96,9 @@ const AdminView: React.FC<AdminViewProps> = ({
 
   const [loadError, setLoadError] =
     useState("");
+
+  const handledInitialRequestId =
+    useRef<string | null>(null);
 
   const [
     visitorStats,
@@ -348,6 +357,40 @@ const [
       );
     }
   }, [requests, selectedRequest]);
+
+  useEffect(() => {
+    if (
+      loading ||
+      !initialRequestId ||
+      handledInitialRequestId.current ===
+        initialRequestId
+    ) {
+      return;
+    }
+
+    handledInitialRequestId.current =
+      initialRequestId;
+
+    const linkedRequest = requests.find(
+      (request) =>
+        request.id === initialRequestId,
+    );
+
+    if (linkedRequest) {
+      setSelectedRequest(linkedRequest);
+    } else {
+      setLoadError(
+        "ไม่พบคำร้องจากลิงก์ LINE อาจถูกลบหรือบัญชีนี้ไม่มีสิทธิ์เข้าถึง",
+      );
+    }
+
+    onInitialRequestHandled?.();
+  }, [
+    initialRequestId,
+    loading,
+    onInitialRequestHandled,
+    requests,
+  ]);
 
   const fetchAnalyticsHistory =
     useCallback(async () => {
@@ -817,6 +860,11 @@ const [
           </h1>
 
   <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+            <ThemeToggle
+              showLabel
+              className="hidden sm:inline-flex"
+            />
+            <ThemeToggle className="sm:hidden" />
             <button
               type="button"
               onClick={() =>
@@ -846,7 +894,8 @@ const [
               onClick={() =>
                 setShowReport(true)
               }
-              className="flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white shadow-lg shadow-emerald-200 transition-all hover:bg-emerald-700"
+              className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-bold text-white shadow-lg shadow-emerald-200 transition-all hover:brightness-110"
+              style={{ background: "var(--brand-gradient)" }}
             >
               <BarChart3 className="h-4 w-4" />
               ดูรายงานสถิติ

@@ -77,7 +77,7 @@ const RequestView: React.FC<RequestViewProps> = ({
   handleSubmitRequest, setView, loading, error 
 }) => {
   
-  const brandGradient = "linear-gradient(90deg, hsla(222, 51%, 34%, 1) 0%, hsla(119, 37%, 45%, 1) 100%)";
+  const brandGradient = "var(--brand-gradient)";
 
   const [
     currentStep,
@@ -295,16 +295,16 @@ const RequestView: React.FC<RequestViewProps> = ({
         </div>
       )}
 
-      <div className="max-w-5xl mx-auto animate-in slide-in-from-right duration-500 pb-28 pt-12 px-6 font-sans text-slate-900">
+      <div className="mx-auto max-w-5xl animate-in slide-in-from-right px-3 pb-28 pt-6 font-sans text-slate-900 duration-500 sm:px-6 sm:pt-12">
         <button type="button" onClick={() => setView('home')} className="group mb-8 flex items-center text-slate-500 hover:text-slate-800 transition-colors font-medium text-sm">
           <ArrowLeft className="w-4 h-4 mr-2 transition-transform group-hover:-translate-x-1" aria-hidden="true" /> ย้อนกลับหน้าหลัก
         </button>
 
-        <div className="bg-white rounded-3xl shadow-2xl shadow-slate-200/50 border border-slate-100 overflow-hidden transition-all">
-          <div className="p-12 md:p-16 text-center border-b border-slate-100 bg-slate-50/30">
-            <div className="inline-flex p-4 bg-white rounded-3xl shadow-sm mb-6 text-blue-900 border border-slate-100"><Camera className="w-10 h-10" /></div>
-            <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-4 tracking-tight">ยื่นคำร้องขอภาพ CCTV</h2>
-            <p className="text-slate-500 max-w-xl mx-auto font-normal leading-relaxed text-lg">ระบุรายละเอียดเหตุการณ์และแนบเอกสารสำคัญ เพื่อให้เจ้าหน้าที่ดำเนินการตรวจสอบได้อย่างแม่นยำ</p>
+        <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xl shadow-slate-200/50 transition-all sm:rounded-3xl sm:shadow-2xl">
+          <div className="border-b border-slate-100 bg-slate-50/30 p-6 text-center sm:p-10 md:p-16">
+            <div className="mb-4 inline-flex rounded-2xl border border-slate-100 bg-white p-3 text-blue-900 shadow-sm sm:mb-6 sm:rounded-3xl sm:p-4"><Camera className="h-7 w-7 sm:h-10 sm:w-10" /></div>
+            <h2 className="mb-3 text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl md:mb-4 md:text-4xl">ยื่นคำร้องขอภาพ CCTV</h2>
+            <p className="mx-auto max-w-xl text-sm font-normal leading-relaxed text-slate-500 sm:text-base">กรอกเหตุการณ์ ปักหมุด และแนบเอกสารที่จำเป็น</p>
           </div>
 
           <RequestWizardProgress
@@ -316,7 +316,7 @@ const RequestView: React.FC<RequestViewProps> = ({
           <form
             noValidate
             onSubmit={handleLocalSubmit}
-            className="space-y-10 p-6 sm:p-8 md:p-16"
+            className="space-y-7 p-4 sm:space-y-10 sm:p-8 md:p-16"
           >
             <header className="scroll-mt-28">
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-600">
@@ -627,7 +627,7 @@ const RequestView: React.FC<RequestViewProps> = ({
               />
             )}
 
-            <div className="sticky bottom-3 z-30 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-2xl shadow-slate-300/40 backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between md:static md:border-0 md:border-t md:bg-transparent md:px-0 md:pt-10 md:shadow-none">
+            <div className="sticky bottom-[calc(5.25rem+env(safe-area-inset-bottom))] z-30 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-2xl shadow-slate-300/40 backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between sm:p-4 md:static md:border-0 md:border-t md:bg-transparent md:px-0 md:pt-10 md:shadow-none">
               <div className="hidden items-center gap-3 rounded-full border border-slate-100 bg-slate-50 px-6 py-3 shadow-inner lg:flex">
                 <ShieldCheck className="w-5 h-5 text-blue-700" /><p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">มาตรฐานความปลอดภัย PDPA 100%</p>
               </div>

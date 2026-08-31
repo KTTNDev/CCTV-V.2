@@ -682,6 +682,11 @@ transaction.create(
         300,
       ),
 
+    submittedAt:
+      submittedAt
+        .toDate()
+        .toISOString(),
+
     retryKey:
       notificationRetryKey,
 
